@@ -88,7 +88,7 @@ const invalid: ESLintUtils.InvalidTestCase<MessageIds, Options>[] = [
     errors: [{ messageId: "cannotModifyExternalVariables" }],
   },
   {
-    name: "cannot use external reference variables",
+    name: "cannot return external reference variables",
     code: `
       const x = {};
       function foo() {

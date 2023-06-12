@@ -127,6 +127,24 @@ const rule = createRule<Options, MessageIds>({
           });
         }
       },
+      ReturnStatement(node) {
+        if (isIdentifierNode(node.argument)) {
+          const currentScope = getScope({ node, scopeManager });
+          if (!currentScope) {
+            return;
+          }
+          const variable = getScopeVariable({ node: node.argument as TSESTree.Identifier, scope: currentScope });
+          if (variable?.scope === currentScope) {
+            return; // assignment to a variable in the current scope is fine
+          }
+          ruleContext.report({
+            node,
+            messageId: "cannotUseExternalMutableVariables",
+          });
+        }
+
+        // todo account for multiple return arguments as sequence expression
+      },
     };
   },
 });
