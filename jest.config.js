@@ -4,6 +4,9 @@
 /** @type {import('@jest/types').Config.InitialOptions} */
 module.exports = {
   collectCoverage: true,
+  onlyFailures: true,
+  logHeapUsage: true,
+  verbose: true,
   collectCoverageFrom: ["src/**/*.{js,jsx,ts,tsx}"],
   coverageReporters: ["lcov"],
   moduleFileExtensions: ["ts", "tsx", "mts", "mtsx", "js", "jsx", "mjs", "mjsx", "json", "node"],
