@@ -1,8 +1,6 @@
 {
-  "extends": "./tsconfig.build.json",
+  "extends": "./tsconfig.base.json",
   "compilerOptions": {
-    "rootDir": ".",
-    "sourceMap": true,
-    "inlineSources": true
+    "rootDir": "."
   }
 }

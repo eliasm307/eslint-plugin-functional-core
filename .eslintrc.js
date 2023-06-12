@@ -2,8 +2,9 @@
 
 module.exports = {
   root: true,
-  sourceType: "module",
-  extends: ["eslint:recommended", "plugin:eslint-plugin/recommended", "plugin:node/recommended"],
+  parser: "@typescript-eslint/parser",
+  plugins: ["@typescript-eslint"],
+  extends: ["eslint:recommended", "plugin:eslint-plugin/recommended"],
   env: {
     node: true,
   },

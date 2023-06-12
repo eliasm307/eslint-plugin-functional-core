@@ -3,8 +3,6 @@
     // specifically disable declarations for the plugin
     "declaration": false,
     "declarationMap": false,
-    "outDir": "./dist",
-    "rootDir": "./src",
     "resolveJsonModule": true,
     "allowSyntheticDefaultImports": true,
     "allowUnreachableCode": false,
@@ -20,6 +18,5 @@
     "target": "es2017",
     "lib": ["es2017"],
     "paths": {}
-  },
-  "include": ["src"]
+  }
 }
