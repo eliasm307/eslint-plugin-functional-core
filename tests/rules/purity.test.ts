@@ -16,19 +16,37 @@ const invalid: ESLintUtils.InvalidTestCase<MessageIds, Options>[] = [
     errors: [{ messageId: "cannotReferenceGlobalContext" }],
   },
   {
-    name: "cannot use globalThis",
+    name: "cannot modify globalThis",
     code: `
       function foo() {
         globalThis.foo.x = 1;
       }
     `,
+    errors: [{ messageId: "cannotModifyExternalVariables" }, { messageId: "cannotReferenceGlobalContext" }],
+  },
+  {
+    name: "cannot use globalThis",
+    code: `
+      function foo() {
+        const x = globalThis;
+      }
+    `,
     errors: [{ messageId: "cannotReferenceGlobalContext" }],
   },
   {
-    name: "cannot use window",
+    name: "cannot modify global window",
     code: `
       function foo() {
         window.foo.x = 1;
+      }
+    `,
+    errors: [{ messageId: "cannotModifyExternalVariables" }, { messageId: "cannotReferenceGlobalContext" }],
+  },
+  {
+    name: "cannot use global window",
+    code: `
+      function foo() {
+        const x = window;
       }
     `,
     errors: [{ messageId: "cannotReferenceGlobalContext" }],
@@ -77,7 +95,7 @@ const invalid: ESLintUtils.InvalidTestCase<MessageIds, Options>[] = [
         return x;
       }
     `,
-    errors: [{ messageId: "cannotUseExternalVariables" }],
+    errors: [{ messageId: "cannotUseExternalMutableVariables" }],
   },
 ];
 
@@ -91,6 +109,15 @@ ruleTester.run("purity", rule, {
           const y = x;
         }
       `,
+    },
+    {
+      name: "can mutate internal reference variables",
+      code: `
+      function foo() {
+        const x = {};
+        x.a = 1;
+      }
+    `,
     },
   ],
   invalid: invalid.map((c) => ({ ...c, filename: "file.pure.ts" })),

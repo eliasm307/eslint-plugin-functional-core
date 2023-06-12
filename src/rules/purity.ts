@@ -5,8 +5,8 @@
 
 import { isIdentifier } from "typescript";
 import { createRule } from "../utils";
-import { analyze as analyzeScope, ScopeManager, Scope } from "@typescript-eslint/scope-manager";
-import { isIdentifierNode } from "../util/TSESTree-predicates";
+import { analyze as analyzeScope, ScopeManager, Scope, Variable } from "@typescript-eslint/scope-manager";
+import { isIdentifierNode, isMemberExpressionNode } from "../util/TSESTree-predicates";
 import { TSESTree } from "@typescript-eslint/utils";
 
 export type Options = [];
@@ -15,7 +15,7 @@ export type MessageIds =
   | "moduleCannotHaveSideEffectImports"
   | "cannotReferenceGlobalContext"
   | "cannotModifyExternalVariables"
-  | "cannotUseExternalVariables";
+  | "cannotUseExternalMutableVariables";
 
 function getScope({ node, scopeManager }: { node: TSESTree.Node; scopeManager: ScopeManager }): Scope | void {
   while (node) {
@@ -39,8 +39,9 @@ const rule = createRule<Options, MessageIds>({
       "": "TBC",
       moduleCannotHaveSideEffectImports:
         "A pure module cannot have imports without specifiers, this is likely a side-effect",
-      cannotReferenceGlobalContext: "Code in a pure module cannot global context",
+      cannotReferenceGlobalContext: "Code in a pure module cannot use global context",
       cannotModifyExternalVariables: "Code in a pure module cannot modify external variables",
+      cannotUseExternalMutableVariables: "Code in a pure module cannot use external variables",
     },
     schema: [],
   },
@@ -86,17 +87,38 @@ const rule = createRule<Options, MessageIds>({
         });
       },
       AssignmentExpression(node) {
+        // is variable reassignment?
         if (isIdentifierNode(node.left)) {
           const currentScope = getScope({ node, scopeManager });
           if (!currentScope) {
             return;
           }
           const assignmentTargetIdentifier = node.left;
-          const variable = currentScope.references.find((ref) => {
-            return ref.identifier.name === assignmentTargetIdentifier.name;
-          });
-          if (variable?.resolved?.scope === currentScope) {
+          const variable = getScopeVariable({ node: assignmentTargetIdentifier, scope: currentScope });
+          if (variable?.scope === currentScope) {
             return; // assignment to a variable in the current scope is fine
+          }
+
+          ruleContext.report({
+            node,
+            messageId: "cannotModifyExternalVariables",
+          });
+          return;
+        }
+
+        // is reference variable mutation?
+        if (isMemberExpressionNode(node.left)) {
+          const rootExpressionObject = getMemberExpressionRootObjectNode(node.left);
+          if (!rootExpressionObject) {
+            return; // ? when would this be undefined?
+          }
+          const currentScope = getScope({ node, scopeManager });
+          if (!currentScope) {
+            return;
+          }
+          const variable = getScopeVariable({ node: rootExpressionObject, scope: currentScope });
+          if (variable?.scope === currentScope) {
+            return; // assignment to a reference variable in the current scope is fine
           }
 
           ruleContext.report({
@@ -108,5 +130,20 @@ const rule = createRule<Options, MessageIds>({
     };
   },
 });
+
+function getScopeVariable({ node, scope }: { node: TSESTree.Identifier; scope: Scope }): Variable | void {
+  return scope.variables.find((variable) => {
+    return variable.name === node.name;
+  });
+}
+
+function getMemberExpressionRootObjectNode(node: TSESTree.MemberExpression): TSESTree.Identifier | void {
+  if (isIdentifierNode(node.object)) {
+    return node.object;
+  }
+  if (isMemberExpressionNode(node.object)) {
+    return getMemberExpressionRootObjectNode(node.object);
+  }
+}
 
 export default rule;
