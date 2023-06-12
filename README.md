@@ -42,7 +42,14 @@ Then configure the rules you want to use under the rules section.
 ## Rules
 
 <!-- begin auto-generated rules list -->
-TODO: Run eslint-doc-generator to generate the rules list.
+
+💼 Configurations enabled in.\
+✅ Set in the `recommended` configuration.
+
+| Name                           | Description | 💼 |
+| :----------------------------- | :---------- | :- |
+| [purity](docs/rules/purity.md) | TBC         | ✅  |
+
 <!-- end auto-generated rules list -->
 
 
