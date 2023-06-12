@@ -5,7 +5,7 @@
 
 import { isIdentifier } from "typescript";
 import { createRule } from "../utils";
-import { analyze as analyzeScope, ScopeManager } from "@typescript-eslint/scope-manager";
+import { analyze as analyzeScope, ScopeManager, Scope } from "@typescript-eslint/scope-manager";
 import { isIdentifierNode } from "../util/TSESTree-predicates";
 import { TSESTree } from "@typescript-eslint/utils";
 
@@ -14,9 +14,10 @@ export type MessageIds =
   | ""
   | "moduleCannotHaveSideEffectImports"
   | "cannotReferenceGlobalContext"
-  | "cannotModifyExternalVariables";
+  | "cannotModifyExternalVariables"
+  | "cannotUseExternalVariables";
 
-function getScope({ node, scopeManager }: { node: TSESTree.Node; scopeManager: ScopeManager }) {
+function getScope({ node, scopeManager }: { node: TSESTree.Node; scopeManager: ScopeManager }): Scope | void {
   while (node) {
     const scope = scopeManager.acquire(node);
     if (scope) {

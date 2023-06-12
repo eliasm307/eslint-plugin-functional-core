@@ -13,7 +13,7 @@ const invalid: ESLintUtils.InvalidTestCase<MessageIds, Options>[] = [
         this.foo.x = 1;
       }
     `,
-    errors: [{ messageId: "" }],
+    errors: [{ messageId: "cannotReferenceGlobalContext" }],
   },
   {
     name: "cannot use globalThis",
@@ -22,7 +22,7 @@ const invalid: ESLintUtils.InvalidTestCase<MessageIds, Options>[] = [
         globalThis.foo.x = 1;
       }
     `,
-    errors: [{ messageId: "" }],
+    errors: [{ messageId: "cannotReferenceGlobalContext" }],
   },
   {
     name: "cannot use window",
@@ -31,23 +31,23 @@ const invalid: ESLintUtils.InvalidTestCase<MessageIds, Options>[] = [
         window.foo.x = 1;
       }
     `,
-    errors: [{ messageId: "" }],
+    errors: [{ messageId: "cannotReferenceGlobalContext" }],
   },
   {
-    name: "cannot use global variables",
+    name: "cannot modify global variables",
     code: `
       function foo() {
         x = 1;
       }
     `,
-    errors: [{ messageId: "" }],
+    errors: [{ messageId: "cannotModifyExternalVariables" }],
   },
   {
     name: "cannot have side-effect imports",
     code: `
       import "side-effect";
     `,
-    errors: [{ messageId: "" }],
+    errors: [{ messageId: "moduleCannotHaveSideEffectImports" }],
   },
   {
     name: "cannot use mutable external primitive variables",
@@ -67,7 +67,7 @@ const invalid: ESLintUtils.InvalidTestCase<MessageIds, Options>[] = [
         x.a = 1;
       }
     `,
-    errors: [{ messageId: "" }],
+    errors: [{ messageId: "cannotModifyExternalVariables" }],
   },
   {
     name: "cannot use external reference variables",
@@ -77,7 +77,7 @@ const invalid: ESLintUtils.InvalidTestCase<MessageIds, Options>[] = [
         return x;
       }
     `,
-    errors: [{ messageId: "" }],
+    errors: [{ messageId: "cannotUseExternalVariables" }],
   },
 ];
 
