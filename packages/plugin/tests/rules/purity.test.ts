@@ -187,6 +187,16 @@ const invalid: ESLintUtils.InvalidTestCase<MessageIds, Options>[] = [
     `,
     errors: [{ messageId: "cannotModifyMembers" }],
   },
+  {
+    name: "cannot import impure modules by named import (without option)",
+    code: `import { foo } from "./foo";`,
+    errors: [{ messageId: "cannotImportImpureModules" }],
+  },
+  {
+    name: "cannot import impure modules by default import (without option)",
+    code: `import foo from "./foo";`,
+    errors: [{ messageId: "cannotImportImpureModules" }],
+  },
 ];
 
 ruleTester.run("purity", rule, {
@@ -208,6 +218,15 @@ ruleTester.run("purity", rule, {
         x.a = 1;
       }
     `,
+    },
+    {
+      name: "can import other pure modules",
+      code: `import Bar, { foo } from "./foo.pure";`,
+    },
+    {
+      name: "can import impure modules with option",
+      code: `import Bar, {foo} from "./foo";`,
+      options: [{ allowImpureImports: true }],
     },
   ],
   invalid: invalid.map((c) => ({ ...c, filename: "file.pure.ts" })),
