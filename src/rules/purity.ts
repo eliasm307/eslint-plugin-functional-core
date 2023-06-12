@@ -66,7 +66,6 @@ const rule = createRule<Options, MessageIds>({
         });
       },
       ImportDeclaration(node) {
-        debugger;
         if (node.specifiers.length === 0) {
           ruleContext.report({
             node,
@@ -74,13 +73,7 @@ const rule = createRule<Options, MessageIds>({
           });
         }
       },
-      ThisExpression(node) {
-        ruleContext.report({
-          node,
-          messageId: "cannotReferenceGlobalContext",
-        });
-      },
-      "Identifier[name=globalThis], Identifier[name=window]"(node) {
+      "ThisExpression, Identifier[name=globalThis], Identifier[name=window]"(node) {
         ruleContext.report({
           node,
           messageId: "cannotReferenceGlobalContext",

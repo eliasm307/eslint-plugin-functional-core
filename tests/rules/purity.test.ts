@@ -1,6 +1,14 @@
 import { ESLintUtils } from "@typescript-eslint/utils";
 import rule, { MessageIds, Options } from "../../src/rules/purity";
 
+// todo account for computed properties
+// todo account for object spread
+// todo account for object destructuring
+// todo account for array destructuring
+// todo account for array spread
+// todo account for function spread
+// todo account for types of identifiers
+
 const ruleTester = new ESLintUtils.RuleTester({
   parser: "@typescript-eslint/parser",
 });
