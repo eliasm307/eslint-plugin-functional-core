@@ -1,12 +1,10 @@
 // see https://typescript-eslint.io/custom-rules
 // see examples at: https://github.com/typescript-eslint/typescript-eslint/tree/main/packages/eslint-plugin
 
-import { ESLintUtils } from "@typescript-eslint/utils";
+import { createRule } from "../utils";
 
 export type Options = [];
 export type MessageIds = "";
-
-const createRule = ESLintUtils.RuleCreator((name) => `https://example.com/rule/${name}`);
 
 const rule = createRule<Options, MessageIds>({
   name: "purity",
