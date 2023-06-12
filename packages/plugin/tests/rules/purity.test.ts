@@ -76,11 +76,31 @@ const invalid: ESLintUtils.InvalidTestCase<MessageIds, Options>[] = [
     errors: [{ messageId: "moduleCannotHaveSideEffectImports" }],
   },
   {
-    name: "cannot use mutable external primitive variables",
+    name: "cannot modify mutable external primitive variables",
     code: `
       let x = 1;
       function foo() {
         x = 2;
+      }
+    `,
+    errors: [{ messageId: "cannotModifyExternalVariables" }],
+  },
+  {
+    name: "cannot increment mutable external primitive variables",
+    code: `
+      let x = 1;
+      function foo() {
+        x++;
+      }
+    `,
+    errors: [{ messageId: "cannotModifyExternalVariables" }],
+  },
+  {
+    name: "cannot decrement mutable external primitive variables",
+    code: `
+      let x = 1;
+      function foo() {
+        x--;
       }
     `,
     errors: [{ messageId: "cannotModifyExternalVariables" }],
@@ -104,6 +124,68 @@ const invalid: ESLintUtils.InvalidTestCase<MessageIds, Options>[] = [
       }
     `,
     errors: [{ messageId: "cannotUseExternalMutableVariables" }],
+  },
+  {
+    name: "cannot modify reference parameters",
+    code: `
+      function impure(param) {
+        param.x = 1;
+      }
+    `,
+    errors: [{ messageId: "cannotModifyExternalVariables" }],
+  },
+  {
+    name: "cannot use impure functions",
+    code: `
+      function impure() {
+        setTimeout(() => console.log('Impure!'), 1000);
+      }
+    `,
+    errors: [{ messageId: "cannotUseImpureFunctions" }],
+  },
+  {
+    name: "cannot throw errors (without option flag)",
+    code: `
+      function impure(shouldBeThrown) {
+        if (shouldBeThrown) {
+          throw new Error('Impure exception');
+        }
+      }
+    `,
+    errors: [{ messageId: "cannotThrowErrors" }],
+  },
+  {
+    name: "cannot use Math.random",
+    code: `
+    function impure() {
+      return Math.random() * 100;
+    }
+    `,
+    errors: [{ messageId: "cannotUseImpureFunctions" }],
+  },
+  {
+    name: "cannot use console (without option flag)",
+    code: `
+    function impure() {
+      return Math.random() * 100;
+    }
+    `,
+    errors: [{ messageId: "cannotUseImpureFunctions" }],
+  },
+  {
+    name: "cannot modify instance properties",
+    code: `
+      class Impure {
+        constructor() {
+          this.value = 0;
+        }
+
+        impure() {
+          this.value++;
+        }
+      }
+    `,
+    errors: [{ messageId: "cannotModifyMembers" }],
   },
 ];
 

@@ -3,7 +3,6 @@
 // Selectors reference: https://eslint.org/docs/latest/extend/selectors
 // ScopeManager reference: https://eslint.org/docs/latest/extend/scope-manager-interface
 
-import { isIdentifier } from "typescript";
 import { createRule } from "../utils";
 import { analyze as analyzeScope, ScopeManager, Scope, Variable } from "@typescript-eslint/scope-manager";
 import { isIdentifierNode, isMemberExpressionNode } from "../util/TSESTree-predicates";
@@ -82,6 +81,7 @@ const rule = createRule<Options, MessageIds>({
       AssignmentExpression(node) {
         // is variable reassignment?
         if (isIdentifierNode(node.left)) {
+          // todo track current scope implicitly when visiting functions to avoid re-calculating this a lot e.g. https://github.com/eslint/eslint-scope
           const currentScope = getScope({ node, scopeManager });
           if (!currentScope) {
             return;
