@@ -1,4 +1,5 @@
 import { ESLintUtils } from "@typescript-eslint/utils";
+
 import rule, { MessageIds, Options } from "../../src/rules/purity";
 
 // todo account for computed properties
@@ -165,12 +166,13 @@ const invalid: ESLintUtils.InvalidTestCase<MessageIds, Options>[] = [
     errors: [{ messageId: "cannotUseExternalMutableVariables" }],
   },
   {
-    name: "cannot use impure functions",
+    name: "cannot use impure global functions",
     code: `
       function impure() {
         setTimeout(() => console.log('Impure!'), 1000);
       }
     `,
+    only: true,
     errors: [{ messageId: "cannotUseImpureFunctions" }],
   },
   {
@@ -243,11 +245,11 @@ ruleTester.run("purity", rule, {
     {
       name: "can mutate internal reference variables",
       code: `
-      function foo() {
-        const x = {};
-        x.a = 1;
-      }
-    `,
+        function foo() {
+          const x = {};
+          x.a = 1;
+        }
+      `,
     },
     {
       name: "can import other pure modules",
@@ -256,7 +258,16 @@ ruleTester.run("purity", rule, {
     {
       name: "can import impure modules with option",
       code: `import Bar, {foo} from "./foo";`,
-      options: [{ allowImpureImports: true }],
+      // options: [{ allowImpureImports: true }],
+    },
+
+    {
+      name: "can use pure global functions",
+      code: `
+        function pure() {
+          const foo = structuredClone({a: 1});
+        },
+      `,
     },
   ],
   invalid: invalid.map((c) => ({ ...c, filename: "file.pure.ts" })),

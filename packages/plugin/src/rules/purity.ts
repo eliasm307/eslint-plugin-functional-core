@@ -2,19 +2,29 @@
 // see examples at: https://github.com/typescript-eslint/typescript-eslint/tree/main/packages/eslint-plugin
 // Selectors reference: https://eslint.org/docs/latest/extend/selectors
 // ScopeManager reference: https://eslint.org/docs/latest/extend/scope-manager-interface
+// Visualise scope: http://mazurov.github.io/escope-demo/
 
-import { createRule } from "../utils";
-import { analyze as analyzeScope, ScopeManager, Scope, Variable } from "@typescript-eslint/scope-manager";
-import { isIdentifierNode, isMemberExpressionNode } from "../util/TSESTree-predicates";
+import { analyze as analyzeScope, Scope, ScopeManager, Variable } from "@typescript-eslint/scope-manager";
 import { TSESTree } from "@typescript-eslint/utils";
 
-export type Options = [];
+import { isIdentifierNode, isMemberExpressionNode } from "../util/TSESTree-predicates";
+import { createRule } from "../utils";
+
+export type Options = [
+  {
+    errorsAreImpure?: boolean;
+  },
+];
 export type MessageIds =
   | ""
   | "moduleCannotHaveSideEffectImports"
   | "cannotReferenceGlobalContext"
   | "cannotModifyExternalVariables"
-  | "cannotUseExternalMutableVariables";
+  | "cannotUseExternalMutableVariables"
+  | "cannotUseImpureFunctions"
+  | "cannotThrowErrors"
+  | "cannotModifyMembers"
+  | "cannotImportImpureModules";
 
 function getScope({ node, scopeManager }: { node: TSESTree.Node; scopeManager: ScopeManager }): Scope | void {
   while (node) {
@@ -36,15 +46,24 @@ const rule = createRule<Options, MessageIds>({
     },
     messages: {
       "": "TBC",
-      moduleCannotHaveSideEffectImports:
-        "A pure module cannot have imports without specifiers, this is likely a side-effect",
+      moduleCannotHaveSideEffectImports: "A pure module cannot have imports without specifiers, this is likely a side-effect",
       cannotReferenceGlobalContext: "Code in a pure module cannot use global context",
       cannotModifyExternalVariables: "Code in a pure module cannot modify external variables",
       cannotUseExternalMutableVariables: "Code in a pure module cannot use external variables",
+      cannotUseImpureFunctions: "Code in a pure module cannot use impure functions",
     },
-    schema: [],
+    schema: [
+      {
+        type: "object",
+        properties: {
+          errorsAreImpure: {
+            type: "boolean",
+          },
+        },
+      },
+    ],
   },
-  defaultOptions: [],
+  defaultOptions: [{}],
   create(ruleContext) {
     // todo allow items in impure modules to be marked as pure
     // todo make pattern for pure module paths configurable
@@ -137,6 +156,38 @@ const rule = createRule<Options, MessageIds>({
         }
 
         // todo account for multiple return arguments as sequence expression
+      },
+      CallExpression(node) {
+        if (isIdentifierNode(node.callee)) {
+          const currentScope = getScope({ node, scopeManager });
+          if (!currentScope) {
+            // ie is global function?
+            // todo check if global function is pure
+            ruleContext.report({
+              node: node.callee,
+              messageId: "cannotUseImpureFunctions",
+            });
+            return;
+          }
+          const variable = getScopeVariable({ node: node.callee, scope: currentScope });
+          const isGlobalFunction = !variable || variable.scope.type === "global";
+          if (!isGlobalFunction) {
+            return; // using function from non-global scope is fine assuming it's pure, if its imported this is a different error
+          }
+          // todo check if global function is pure
+          ruleContext.report({
+            node: node.callee,
+            messageId: "cannotUseImpureFunctions",
+          });
+        }
+      },
+      ThrowStatement(node) {
+        if (ruleContext.options[0]?.errorsAreImpure) {
+          ruleContext.report({
+            node,
+            messageId: "cannotThrowErrors",
+          });
+        }
       },
     };
   },

@@ -4,10 +4,10 @@
 /** @type {import('@jest/types').Config.InitialOptions} */
 module.exports = {
   collectCoverage: true,
-  onlyFailures: true,
   logHeapUsage: true,
+  bail: true,
   verbose: true,
-  collectCoverageFrom: ["src/**/*.{js,jsx,ts,tsx}"],
+  collectCoverageFrom: ["./src/**/*.{js,jsx,ts,tsx}"],
   coverageReporters: ["lcov"],
   moduleFileExtensions: ["ts", "tsx", "mts", "mtsx", "js", "jsx", "mjs", "mjsx", "json", "node"],
   testRegex: ["./tests/.+\\.test\\.ts$", "./tests/.+\\.spec\\.ts$"],
