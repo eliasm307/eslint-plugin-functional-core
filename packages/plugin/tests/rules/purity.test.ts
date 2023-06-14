@@ -135,6 +135,36 @@ const invalid: ESLintUtils.InvalidTestCase<MessageIds, Options>[] = [
     errors: [{ messageId: "cannotModifyExternalVariables" }],
   },
   {
+    name: "cannot use external reference variables",
+    code: `
+      const x = {};
+      function foo() {
+        const y = x;
+      }
+    `,
+    errors: [{ messageId: "cannotUseExternalMutableVariables" }],
+  },
+  {
+    name: "cannot use external reference variables indirectly",
+    code: `
+      const x = {};
+      function foo() {
+        const y = {x};
+      }
+    `,
+    errors: [{ messageId: "cannotUseExternalMutableVariables" }],
+  },
+  {
+    name: "cannot use external reference variables via spread",
+    code: `
+      const x = {};
+      function foo() {
+        const y = {...x};
+      }
+    `,
+    errors: [{ messageId: "cannotUseExternalMutableVariables" }],
+  },
+  {
     name: "cannot use impure functions",
     code: `
       function impure() {
