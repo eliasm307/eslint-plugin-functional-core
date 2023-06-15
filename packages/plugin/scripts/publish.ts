@@ -14,17 +14,12 @@ console.log("START: Publish script", args);
 function assertPartsAreAllNumbers(parts: number[], version: string) {
   parts.forEach((part, i) => {
     if (isNaN(part)) {
-      throw new Error(
-        `Invalid version ${UPDATE_TYPE_LEVELS[i]} part ${part} in ${version}`
-      );
+      throw new Error(`Invalid version ${UPDATE_TYPE_LEVELS[i]} part ${part} in ${version}`);
     }
   });
 }
 
-function updateVersion(
-  currentVersion: string,
-  updateTypeName: UpdateTypeName
-): string {
+function updateVersion(currentVersion: string, updateTypeName: UpdateTypeName): string {
   const updateTypeLevel = UPDATE_TYPE_LEVELS.indexOf(updateTypeName);
   console.log("updateVersion", currentVersion, updateTypeName, updateTypeLevel);
 
@@ -39,9 +34,10 @@ function updateVersion(
   return newVersion;
 }
 
-async function run(cmd: string, args: string[] = []) {
+async function run({ cmd, args, cwd }: { cmd: "npm" | "git"; args: string[]; cwd: string }) {
   return new Promise<void>((resolve, reject) => {
-    const spawnedProcess = spawn(cmd, args);
+    // todo dont make this windows specific
+    const spawnedProcess = spawn(`${cmd}`, args, { cwd });
 
     spawnedProcess.stdout.setEncoding("utf8");
     spawnedProcess.stdout.on("data", console.log);
@@ -64,32 +60,58 @@ async function run(cmd: string, args: string[] = []) {
 async function main() {
   const updateTypeName = args[0].toUpperCase() as UpdateTypeName;
   const currentVersion = packageJson.version;
-  const newVersion = updateVersion(currentVersion, updateTypeName);
+  // const newVersion = updateVersion(currentVersion, updateTypeName);
+  const newVersion = currentVersion;
 
-  const newPackageJson = {
-    ...packageJson,
-    version: newVersion,
-  };
+  // const newPackageJson = {
+  //   ...packageJson,
+  //   version: newVersion,
+  // };
 
-  const packageJsonPath = path.resolve(__dirname, "../package.json");
-  const newPackageJsonString = JSON.stringify(newPackageJson, null, 2);
-  fs.writeFileSync(packageJsonPath, newPackageJsonString);
+  // const packageJsonPath = path.resolve(__dirname, "../package.json");
+  // const newPackageJsonString = JSON.stringify(newPackageJson, null, 2);
+  // fs.writeFileSync(packageJsonPath, newPackageJsonString);
 
-  console.log("Publishing version", newVersion, "...");
-  await run("npm publish");
-  console.log("✅ Published version", newVersion);
+  // console.log("Publishing version", newVersion, "...");
+  // await run("npm", ["publish"]);
+  // console.log("✅ Published version", newVersion);
+
+  const rootDir = path.resolve(__dirname, "../../../");
+
+  console.log("Adding...");
+  await run({
+    cmd: `git`,
+    args: ["add", "."],
+    cwd: rootDir,
+  });
 
   console.log("Committing...");
-  await run(`git`, ["commit", "-am,", `Publish version ${newVersion}`]);
+  await run({
+    cmd: `git`,
+    args: ["commit", "-am", `"Publish version ${newVersion}"`],
+    cwd: rootDir,
+  });
 
   console.log("Tagging...");
-  await run(`git`, ["tag", `v${newVersion}`]);
+  await run({
+    cmd: `git`,
+    args: ["tag", `v${newVersion}`],
+    cwd: rootDir,
+  });
 
   console.log("Pushing...");
-  await run(`git`, ["push"]);
+  await run({
+    cmd: `git`,
+    args: ["push"],
+    cwd: rootDir,
+  });
 
   console.log("Pushing tags...");
-  await run(`git`, ["push", "--tags"]);
+  await run({
+    cmd: `git`,
+    args: ["push", "--tags"],
+    cwd: rootDir,
+  });
 
   console.log("✅ Done");
 }
