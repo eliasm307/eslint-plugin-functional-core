@@ -7,15 +7,15 @@
 import type { Scope, ScopeManager, Variable } from "@typescript-eslint/scope-manager";
 import { analyze as analyzeScope } from "@typescript-eslint/scope-manager";
 
-import type { TSESTree } from "@typescript-eslint/utils";
+import { createRule } from "../utils";
 import {
   isAssignmentExpressionNode,
   isIdentifierNode,
   isMemberExpressionNode,
   isThisExpressionNode,
-} from "../util/TSESTree-predicates";
-import { createRule } from "../utils";
+} from "../utils/TSESTree-predicates";
 
+import type { TSESTree } from "@typescript-eslint/utils";
 export type Options = [
   | {
       allowThrow?: boolean;
