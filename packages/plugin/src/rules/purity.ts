@@ -59,15 +59,15 @@ const rule = createRule<Options, MessageIds>({
     },
     messages: {
       moduleCannotHaveSideEffectImports: "A pure module cannot have imports without specifiers, this is likely a side-effect",
-      cannotReferenceGlobalContext: "Code in a pure context cannot use global context",
-      cannotModifyExternalVariables: "Code in a pure function cannot modify external variables",
-      cannotUseExternalMutableVariables: "Code in a pure function cannot use external mutable variables",
-      cannotUseImpureFunctions: "Code in a pure context cannot use impure functions",
+      cannotReferenceGlobalContext: "A pure module/function cannot use global context",
+      cannotModifyExternalVariables: "A pure function cannot modify external variables",
+      cannotUseExternalMutableVariables: "A pure function cannot use external mutable variables",
+      cannotUseImpureFunctions: "A pure module/function cannot use impure functions",
       cannotImportImpureModules: "Pure modules cannot import impure modules",
-      cannotThrowErrors: "Code in a pure context cannot throw errors",
-      cannotModifyThisContext: "Code in a pure context cannot modify 'this'",
+      cannotThrowErrors: "A pure module/function cannot throw errors",
+      cannotModifyThisContext: "A pure module/function cannot modify 'this'",
       cannotIgnoreFunctionCallReturnValue:
-        "Code in a pure context cannot ignore function call return values, this is likely a side-effect",
+        "A pure module/function cannot ignore function call return values, this is likely a side-effect",
     },
     schema: [
       {
