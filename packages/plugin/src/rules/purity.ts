@@ -12,20 +12,18 @@ import {
   isAssignmentExpressionNode,
   isIdentifierNode,
   isMemberExpressionNode,
-  isReturnStatementNode,
-  isSpreadElementNode as isSpreadElementNode,
   isThisExpressionNode,
-  isVariableDeclaratorNode,
 } from "../util/TSESTree-predicates";
 import { createRule } from "../utils";
 
 export type Options = [
-  {
-    allowThrow?: boolean;
-  },
+  | {
+      allowThrow?: boolean;
+      allowConsole?: boolean;
+    }
+  | undefined,
 ];
 export type MessageIds =
-  | ""
   | "moduleCannotHaveSideEffectImports"
   | "cannotReferenceGlobalContext"
   | "cannotModifyExternalVariables"
@@ -33,7 +31,8 @@ export type MessageIds =
   | "cannotUseImpureFunctions"
   | "cannotThrowErrors"
   | "cannotImportImpureModules"
-  | "cannotModifyContext";
+  | "cannotModifyThisContext"
+  | "cannotIgnoreFunctionCallReturnValue";
 
 function getScope({ node, scopeManager }: { node: TSESTree.Node; scopeManager: ScopeManager }): Scope | void {
   while (node) {
@@ -59,21 +58,25 @@ const rule = createRule<Options, MessageIds>({
       recommended: false,
     },
     messages: {
-      "": "TBC",
       moduleCannotHaveSideEffectImports: "A pure module cannot have imports without specifiers, this is likely a side-effect",
-      cannotReferenceGlobalContext: "Code in a pure module cannot use global context",
-      cannotModifyExternalVariables: "Code in a pure module cannot modify external variables",
-      cannotUseExternalMutableVariables: "Code in a pure module cannot use external variables",
-      cannotUseImpureFunctions: "Code in a pure module cannot use impure functions",
-      cannotImportImpureModules: "Code in a pure module cannot import impure modules",
-      cannotThrowErrors: "Code in a pure module cannot throw errors",
-      cannotModifyContext: "Code in a pure module cannot modify context",
+      cannotReferenceGlobalContext: "Code in a pure context cannot use global context",
+      cannotModifyExternalVariables: "Code in a pure function cannot modify external variables",
+      cannotUseExternalMutableVariables: "Code in a pure function cannot use external mutable variables",
+      cannotUseImpureFunctions: "Code in a pure context cannot use impure functions",
+      cannotImportImpureModules: "Pure modules cannot import impure modules",
+      cannotThrowErrors: "Code in a pure context cannot throw errors",
+      cannotModifyThisContext: "Code in a pure context cannot modify 'this'",
+      cannotIgnoreFunctionCallReturnValue:
+        "Code in a pure context cannot ignore function call return values, this is likely a side-effect",
     },
     schema: [
       {
         type: "object",
         properties: {
           allowThrow: {
+            type: "boolean",
+          },
+          allowConsole: {
             type: "boolean",
           },
         },
@@ -94,6 +97,7 @@ const rule = createRule<Options, MessageIds>({
 
     let scopeManager: ScopeManager;
     const nodesWithIssues = new WeakSet<TSESTree.Node>();
+    const ruleConfig = ruleContext.options[0] || {};
 
     function reportIssue({ node, messageId }: { node: TSESTree.Node; messageId: MessageIds }): void {
       if (nodesWithIssues.has(node)) return;
@@ -160,10 +164,10 @@ const rule = createRule<Options, MessageIds>({
 
         // is reference variable mutation?
         if (isMemberExpressionNode(targetNode)) {
-          const rootExpressionObject = getMemberExpressionRootObjectNode(targetNode);
+          const rootExpressionObject = getMemberExpressionChainNodes(targetNode)[0];
 
           if (isThisExpressionNode(rootExpressionObject)) {
-            reportIssue({ node, messageId: "cannotModifyContext" });
+            reportIssue({ node, messageId: "cannotModifyThisContext" });
             return;
           }
 
@@ -212,7 +216,7 @@ const rule = createRule<Options, MessageIds>({
           if (isDefinedInScope({ variable, scope: currentScope })) {
             return; // assignment to a variable in the current scope is fine
           }
-          reportIssue({ node, messageId: "cannotUseExternalMutableVariables" });
+          reportIssue({ node: valueNode, messageId: "cannotUseExternalMutableVariables" });
         }
 
         // todo account for multiple return arguments as sequence expression
@@ -245,12 +249,15 @@ const rule = createRule<Options, MessageIds>({
         }
       },
       ThrowStatement(node) {
-        if (!ruleContext.options[0]?.allowThrow) {
+        if (!ruleConfig.allowThrow) {
           reportIssue({
             node,
             messageId: "cannotThrowErrors",
           });
         }
+      },
+      ExpressionStatement(node) {
+        reportIssue({ node, messageId: "cannotIgnoreFunctionCallReturnValue" });
       },
     };
   },
@@ -291,11 +298,11 @@ function getScopeVariable({ node, scope }: { node: TSESTree.Identifier; scope: S
   });
 }
 
-function getMemberExpressionRootObjectNode(node: TSESTree.MemberExpression): TSESTree.Node {
+function getMemberExpressionChainNodes(node: TSESTree.MemberExpression): TSESTree.Node[] {
   if (!isMemberExpressionNode(node.object)) {
-    return node.object;
+    return [node.object];
   }
-  return getMemberExpressionRootObjectNode(node.object);
+  return [...getMemberExpressionChainNodes(node.object), node.property];
 }
 
 export default rule;

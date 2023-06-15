@@ -22,7 +22,7 @@ const invalid: ESLintUtils.InvalidTestCase<MessageIds, Options>[] = [
         this.foo.x = 1;
       }
     `,
-    errors: [{ messageId: "cannotModifyContext" }],
+    errors: [{ messageId: "cannotModifyThisContext" }],
   },
   {
     name: "cannot modify globalThis",
@@ -40,7 +40,7 @@ const invalid: ESLintUtils.InvalidTestCase<MessageIds, Options>[] = [
         const x = globalThis;
       }
     `,
-    errors: [{ messageId: "cannotReferenceGlobalContext" }],
+    errors: [{ messageId: "cannotUseExternalMutableVariables" }],
   },
   {
     name: "cannot modify global window",
@@ -58,7 +58,7 @@ const invalid: ESLintUtils.InvalidTestCase<MessageIds, Options>[] = [
         const x = window;
       }
     `,
-    errors: [{ messageId: "cannotReferenceGlobalContext" }],
+    errors: [{ messageId: "cannotUseExternalMutableVariables" }],
   },
   {
     name: "cannot modify global variables",
@@ -195,10 +195,19 @@ const invalid: ESLintUtils.InvalidTestCase<MessageIds, Options>[] = [
     errors: [{ messageId: "cannotUseImpureFunctions" }],
   },
   {
+    name: "cannot use window.Math.random",
+    code: `
+    function impure() {
+      return window.Math.random() * 100;
+    }
+    `,
+    errors: [{ messageId: "cannotUseImpureFunctions" }],
+  },
+  {
     name: "cannot use console (without option flag)",
     code: `
     function impure() {
-      return Math.random() * 100;
+      console.log("foo");
     }
     `,
     errors: [{ messageId: "cannotUseImpureFunctions" }],
@@ -212,7 +221,7 @@ const invalid: ESLintUtils.InvalidTestCase<MessageIds, Options>[] = [
         }
       }
     `,
-    errors: [{ messageId: "cannotModifyContext" }],
+    errors: [{ messageId: "cannotModifyThisContext" }],
   },
   {
     name: "cannot modify instance properties by object mutation",
@@ -223,7 +232,7 @@ const invalid: ESLintUtils.InvalidTestCase<MessageIds, Options>[] = [
         }
       }
     `,
-    errors: [{ messageId: "cannotModifyContext" }],
+    errors: [{ messageId: "cannotModifyThisContext" }],
   },
   {
     name: "cannot modify instance properties by incrementing",
@@ -234,7 +243,7 @@ const invalid: ESLintUtils.InvalidTestCase<MessageIds, Options>[] = [
         }
       }
     `,
-    errors: [{ messageId: "cannotModifyContext" }],
+    errors: [{ messageId: "cannotModifyThisContext" }],
   },
   {
     name: "cannot modify instance properties by decrementing",
@@ -245,7 +254,7 @@ const invalid: ESLintUtils.InvalidTestCase<MessageIds, Options>[] = [
         }
       }
     `,
-    errors: [{ messageId: "cannotModifyContext" }],
+    errors: [{ messageId: "cannotModifyThisContext" }],
   },
   {
     name: "cannot import impure modules by named import (without option)",
@@ -256,6 +265,11 @@ const invalid: ESLintUtils.InvalidTestCase<MessageIds, Options>[] = [
     name: "cannot import impure modules by default import (without option)",
     code: `import foo from "./foo";`,
     errors: [{ messageId: "cannotImportImpureModules" }],
+  },
+  {
+    name: "cannot call functions and ignore the return value",
+    code: `mod2Pure.func1()`,
+    errors: [{ messageId: "cannotIgnoreFunctionCallReturnValue" }],
   },
 ];
 
@@ -284,28 +298,62 @@ ruleTester.run("purity", rule, {
       code: `import Bar, { foo } from "./foo.pure";`,
     },
     {
-      name: "can import impure modules with option",
-      code: `import Bar, {foo} from "./foo";`,
-      // options: [{ allowImpureImports: true }],
-    },
-    {
       name: "can use pure global functions",
       code: `
-        function pure() {
+        function func() {
           const foo = structuredClone({a: 1});
+        };
+      `,
+    },
+    {
+      name: "can use pure global functions from window",
+      code: `
+        function func() {
+          const foo = window.structuredClone({a: 1});
         };
       `,
     },
     {
       name: "can throw errors (with option flag)",
       code: `
-      function impure(shouldBeThrown) {
-        if (shouldBeThrown) {
-          throw new Error('Impure exception');
+        function func(shouldBeThrown) {
+          if (shouldBeThrown) {
+            throw new Error('Impure exception');
+          }
         }
-      }
     `,
       options: [{ allowThrow: true }],
+    },
+    {
+      name: "can use console (with option flag)",
+      code: `
+        function func() {
+          console.log("foo");
+          console.warn("foo");
+          console.error("foo");
+          console.debug("foo");
+          console.verbose("foo");
+          console.table([]);
+          console.dir([]);
+        }
+    `,
+      options: [{ allowConsole: true }],
+    },
+    {
+      name: "can use pure Math methods",
+      code: `
+        function impure() {
+          return Math.sqrt(4);
+        }
+    `,
+    },
+    {
+      name: "can use pure window.Math methods",
+      code: `
+        function impure() {
+          return window.Math.sqrt(4)
+        }
+    `,
     },
   ],
   invalid: invalid.map((c) => ({ ...c, filename: "file.pure.ts" })),
