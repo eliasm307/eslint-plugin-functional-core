@@ -7,6 +7,9 @@ export const isFunctionNode = ASTUtils.isFunction;
 export const isReturnStatementNode = (node: TSESTree.Node | null | undefined): node is TSESTree.ReturnStatement =>
   node?.type === AST_NODE_TYPES.ReturnStatement;
 
+export const isVariableDeclaratorNode = (node: TSESTree.Node | null | undefined): node is TSESTree.VariableDeclarator =>
+  node?.type === AST_NODE_TYPES.VariableDeclarator;
+
 export const isSpreadElementNode = (node: TSESTree.Node | null | undefined): node is TSESTree.SpreadElement =>
   node?.type === AST_NODE_TYPES.SpreadElement;
 

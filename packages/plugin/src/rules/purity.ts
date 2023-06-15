@@ -15,6 +15,7 @@ import {
   isReturnStatementNode,
   isSpreadElementNode as isSpreadElementNode,
   isThisExpressionNode,
+  isVariableDeclaratorNode,
 } from "../util/TSESTree-predicates";
 import { createRule } from "../utils";
 
@@ -138,6 +139,7 @@ const rule = createRule<Options, MessageIds>({
       },
       "AssignmentExpression, UpdateExpression"(node: TSESTree.AssignmentExpression | TSESTree.UpdateExpression) {
         const targetNode = isAssignmentExpressionNode(node) ? node.left : node.argument;
+
         // is variable reassignment?
         if (isIdentifierNode(targetNode)) {
           // todo track current scope implicitly when visiting functions to avoid re-calculating this a lot e.g. https://github.com/eslint/eslint-scope
@@ -179,8 +181,28 @@ const rule = createRule<Options, MessageIds>({
           }
         }
       },
-      "ReturnStatement, SpreadElement, Property"(node: TSESTree.ReturnStatement | TSESTree.SpreadElement | TSESTree.Property) {
-        const valueNode = isReturnStatementNode(node) ? node.argument : isSpreadElementNode(node) ? node.argument : node.value;
+      "ReturnStatement, SpreadElement, Property, VariableDeclarator"(
+        node: TSESTree.ReturnStatement | TSESTree.SpreadElement | TSESTree.Property | TSESTree.VariableDeclarator,
+      ) {
+        let valueNode: TSESTree.Node | null;
+        switch (node.type) {
+          case "ReturnStatement":
+          case "SpreadElement":
+            valueNode = node.argument;
+            break;
+
+          case "Property":
+            valueNode = node.value;
+            break;
+
+          case "VariableDeclarator":
+            valueNode = node.init;
+            break;
+
+          default:
+            throw new Error(`Unexpected node type: ${node.type}`);
+        }
+
         if (isIdentifierNode(valueNode)) {
           const currentScope = getScope({ node, scopeManager });
           if (!currentScope) {

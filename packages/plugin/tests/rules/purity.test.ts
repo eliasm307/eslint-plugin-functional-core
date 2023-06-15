@@ -22,7 +22,7 @@ const invalid: ESLintUtils.InvalidTestCase<MessageIds, Options>[] = [
         this.foo.x = 1;
       }
     `,
-    errors: [{ messageId: "cannotReferenceGlobalContext" }],
+    errors: [{ messageId: "cannotModifyContext" }],
   },
   {
     name: "cannot modify globalThis",
