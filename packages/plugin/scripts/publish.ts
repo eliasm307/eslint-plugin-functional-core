@@ -77,7 +77,7 @@ async function main() {
   await run({ cmd: `git`, args: ["add", "."], cwd: rootDir });
 
   console.log("Committing...");
-  await run({ cmd: `git`, args: ["commit", "-am", `"Publish version ${newVersion}"`], cwd: rootDir });
+  await run({ cmd: `git`, args: ["commit", "-am", `Publish version ${newVersion}`], cwd: rootDir });
 
   console.log("Tagging...");
   await run({ cmd: `git`, args: ["tag", `v${newVersion}`], cwd: rootDir });
