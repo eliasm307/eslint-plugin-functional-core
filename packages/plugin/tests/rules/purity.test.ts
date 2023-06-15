@@ -31,10 +31,7 @@ const invalid: ESLintUtils.InvalidTestCase<MessageIds, Options>[] = [
         globalThis.foo.x = 1;
       }
     `,
-    errors: [
-      { messageId: "cannotModifyExternalVariables" },
-      { messageId: "cannotReferenceGlobalContext" },
-    ],
+    errors: [{ messageId: "cannotModifyExternalVariables" }, { messageId: "cannotReferenceGlobalContext" }],
   },
   {
     name: "cannot use globalThis",
@@ -52,10 +49,7 @@ const invalid: ESLintUtils.InvalidTestCase<MessageIds, Options>[] = [
         window.foo.x = 1;
       }
     `,
-    errors: [
-      { messageId: "cannotModifyExternalVariables" },
-      { messageId: "cannotReferenceGlobalContext" },
-    ],
+    errors: [{ messageId: "cannotModifyExternalVariables" }, { messageId: "cannotReferenceGlobalContext" }],
   },
   {
     name: "cannot use global window",
@@ -123,12 +117,20 @@ const invalid: ESLintUtils.InvalidTestCase<MessageIds, Options>[] = [
     errors: [{ messageId: "cannotModifyExternalVariables" }],
   },
   {
-    name: "cannot return external reference variables",
+    name: "cannot explicit return external reference variables",
     code: `
       const x = {};
       function foo() {
         return x;
       }
+    `,
+    errors: [{ messageId: "cannotUseExternalMutableVariables" }],
+  },
+  {
+    name: "cannot implicit return external reference variables",
+    code: `
+      const x = {};
+      const foo = () => x;
     `,
     errors: [{ messageId: "cannotUseExternalMutableVariables" }],
   },
@@ -360,6 +362,18 @@ ruleTester.run("purity", rule, {
           return window.Math.sqrt(4)
         }
     `,
+    },
+    {
+      name: "functions can explicit return arguments",
+      code: `
+        const foo2 = [].map((val) => {
+          return val;
+        });
+      `,
+    },
+    {
+      name: "functions can implicit return arguments",
+      code: `const foo = [].map((val) => val);`,
     },
   ],
   invalid: invalid.map((c) => ({ ...c, filename: "file.pure.ts" })),

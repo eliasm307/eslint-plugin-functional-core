@@ -19,6 +19,21 @@ function foo() {
 
   const f = Math.random() > 0.5 ? mod1Impure : mod2Pure; // ❌
 
+  const foo = [].map((val) => val);
+
+  const foo2 = [].map((val) => {
+    return val;
+  });
+
+  const val = [{ foo: "", bar: "" }].reduce((out, val) => {
+    out[val.foo] = val.bar; // this should be allowed via an option?
+    return out;
+  }, {} as Record<string, string>);
+
+  const val2 = [].reduce((out, val) => {
+    return out;
+  }, {});
+
   [].forEach(() => {
     x = 3; // ❌
     y = 4; // ❌
