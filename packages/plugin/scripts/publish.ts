@@ -47,6 +47,10 @@ async function run({ cmd, args, cwd }: { cmd: "npm" | "git"; args: string[]; cwd
     spawnedProcess.stderr.on("data", console.error);
 
     spawnedProcess.on("close", (code) => {
+      if (code !== 0) {
+        reject(`child process exited with code ${code}`);
+        return;
+      }
       console.log(`child process exited with code ${code}`);
       resolve();
     });
@@ -59,6 +63,10 @@ async function run({ cmd, args, cwd }: { cmd: "npm" | "git"; args: string[]; cwd
 }
 
 async function main() {
+  const rootDir = path.resolve(__dirname, "../../../");
+  // git is clean
+  await run({ cmd: `git`, args: ["diff", "--quiet", "--exit-code"], cwd: rootDir });
+
   const updateTypeName = args[0].toUpperCase() as UpdateTypeName;
   const currentVersion = packageJson.version;
   const newVersion = updateVersion(currentVersion, updateTypeName);
@@ -68,7 +76,6 @@ async function main() {
   const newPackageJsonString = JSON.stringify(newPackageJson, null, 2);
   fs.writeFileSync(packageJsonPath, newPackageJsonString);
 
-  const rootDir = path.resolve(__dirname, "../../../");
   console.log("Publishing version", newVersion, "...");
   await run({ cmd: "npm", args: ["publish"], cwd: rootDir });
   console.log("✅ Published version", newVersion);
