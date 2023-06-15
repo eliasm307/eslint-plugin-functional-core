@@ -9,7 +9,7 @@
     "esModuleInterop": true,
     "module": "commonjs",
     "moduleResolution": "node",
-    "sourceMap": true
+    "sourceMap": false
   },
   "include": ["src"]
 }
