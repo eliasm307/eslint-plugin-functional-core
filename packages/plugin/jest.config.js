@@ -10,7 +10,18 @@ module.exports = {
   verbose: true,
   collectCoverageFrom: ["./src/**/*.{js,jsx,ts,tsx}"],
   coverageReporters: ["lcov"],
-  moduleFileExtensions: ["ts", "tsx", "mts", "mtsx", "js", "jsx", "mjs", "mjsx", "json", "node"],
+  moduleFileExtensions: [
+    "ts",
+    "tsx",
+    "mts",
+    "mtsx",
+    "js",
+    "jsx",
+    "mjs",
+    "mjsx",
+    "json",
+    "node",
+  ],
   testRegex: ["./tests/.+\\.test\\.ts$", "./tests/.+\\.spec\\.ts$"],
   transform: {
     "^.+\\.(t|j)sx?$": [

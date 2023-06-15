@@ -31,7 +31,10 @@ const invalid: ESLintUtils.InvalidTestCase<MessageIds, Options>[] = [
         globalThis.foo.x = 1;
       }
     `,
-    errors: [{ messageId: "cannotModifyExternalVariables" }, { messageId: "cannotReferenceGlobalContext" }],
+    errors: [
+      { messageId: "cannotModifyExternalVariables" },
+      { messageId: "cannotReferenceGlobalContext" },
+    ],
   },
   {
     name: "cannot use globalThis",
@@ -49,7 +52,10 @@ const invalid: ESLintUtils.InvalidTestCase<MessageIds, Options>[] = [
         window.foo.x = 1;
       }
     `,
-    errors: [{ messageId: "cannotModifyExternalVariables" }, { messageId: "cannotReferenceGlobalContext" }],
+    errors: [
+      { messageId: "cannotModifyExternalVariables" },
+      { messageId: "cannotReferenceGlobalContext" },
+    ],
   },
   {
     name: "cannot use global window",

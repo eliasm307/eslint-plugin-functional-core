@@ -5,7 +5,12 @@
 // ScopeManager reference: https://eslint.org/docs/latest/extend/scope-manager-interface
 // Visualise scope: http://mazurov.github.io/escope-demo/
 
-import { analyze as analyzeScope, Scope, ScopeManager, Variable } from "@typescript-eslint/scope-manager";
+import {
+  analyze as analyzeScope,
+  Scope,
+  ScopeManager,
+  Variable,
+} from "@typescript-eslint/scope-manager";
 import { TSESTree } from "@typescript-eslint/utils";
 
 import {
@@ -21,7 +26,7 @@ export type Options = [
       allowThrow?: boolean;
       allowConsole?: boolean;
     }
-  | undefined,
+  | undefined
 ];
 export type MessageIds =
   | "moduleCannotHaveSideEffectImports"
@@ -34,7 +39,13 @@ export type MessageIds =
   | "cannotModifyThisContext"
   | "cannotIgnoreFunctionCallReturnValue";
 
-function getScope({ node, scopeManager }: { node: TSESTree.Node; scopeManager: ScopeManager }): Scope | void {
+function getScope({
+  node,
+  scopeManager,
+}: {
+  node: TSESTree.Node;
+  scopeManager: ScopeManager;
+}): Scope | void {
   while (node) {
     const scope = scopeManager.acquire(node);
     if (scope) {
@@ -58,11 +69,16 @@ const rule = createRule<Options, MessageIds>({
       recommended: false,
     },
     messages: {
-      moduleCannotHaveSideEffectImports: "A pure module cannot have imports without specifiers, this is likely a side-effect",
-      cannotReferenceGlobalContext: "Code in a pure context cannot use global context",
-      cannotModifyExternalVariables: "Code in a pure function cannot modify external variables",
-      cannotUseExternalMutableVariables: "Code in a pure function cannot use external mutable variables",
-      cannotUseImpureFunctions: "Code in a pure context cannot use impure functions",
+      moduleCannotHaveSideEffectImports:
+        "A pure module cannot have imports without specifiers, this is likely a side-effect",
+      cannotReferenceGlobalContext:
+        "Code in a pure context cannot use global context",
+      cannotModifyExternalVariables:
+        "Code in a pure function cannot modify external variables",
+      cannotUseExternalMutableVariables:
+        "Code in a pure function cannot use external mutable variables",
+      cannotUseImpureFunctions:
+        "Code in a pure context cannot use impure functions",
       cannotImportImpureModules: "Pure modules cannot import impure modules",
       cannotThrowErrors: "Code in a pure context cannot throw errors",
       cannotModifyThisContext: "Code in a pure context cannot modify 'this'",
@@ -99,7 +115,13 @@ const rule = createRule<Options, MessageIds>({
     const nodesWithIssues = new WeakSet<TSESTree.Node>();
     const ruleConfig = ruleContext.options[0] || {};
 
-    function reportIssue({ node, messageId }: { node: TSESTree.Node; messageId: MessageIds }): void {
+    function reportIssue({
+      node,
+      messageId,
+    }: {
+      node: TSESTree.Node;
+      messageId: MessageIds;
+    }): void {
       if (nodesWithIssues.has(node)) return;
 
       nodesWithIssues.add(node);
@@ -141,8 +163,12 @@ const rule = createRule<Options, MessageIds>({
           return;
         }
       },
-      "AssignmentExpression, UpdateExpression"(node: TSESTree.AssignmentExpression | TSESTree.UpdateExpression) {
-        const targetNode = isAssignmentExpressionNode(node) ? node.left : node.argument;
+      "AssignmentExpression, UpdateExpression"(
+        node: TSESTree.AssignmentExpression | TSESTree.UpdateExpression
+      ) {
+        const targetNode = isAssignmentExpressionNode(node)
+          ? node.left
+          : node.argument;
 
         // is variable reassignment?
         if (isIdentifierNode(targetNode)) {
@@ -152,7 +178,10 @@ const rule = createRule<Options, MessageIds>({
             return;
           }
           const assignmentTargetIdentifier = targetNode;
-          const variable = getScopeVariable({ node: assignmentTargetIdentifier, scope: currentScope });
+          const variable = getScopeVariable({
+            node: assignmentTargetIdentifier,
+            scope: currentScope,
+          });
 
           if (isDefinedInScope({ variable, scope: currentScope })) {
             return; // assignment to a variable in the current scope is fine
@@ -164,7 +193,8 @@ const rule = createRule<Options, MessageIds>({
 
         // is reference variable mutation?
         if (isMemberExpressionNode(targetNode)) {
-          const rootExpressionObject = getMemberExpressionChainNodes(targetNode)[0];
+          const rootExpressionObject =
+            getMemberExpressionChainNodes(targetNode)[0];
 
           if (isThisExpressionNode(rootExpressionObject)) {
             reportIssue({ node, messageId: "cannotModifyThisContext" });
@@ -176,7 +206,10 @@ const rule = createRule<Options, MessageIds>({
             if (!currentScope) {
               return;
             }
-            const variable = getScopeVariable({ node: rootExpressionObject, scope: currentScope });
+            const variable = getScopeVariable({
+              node: rootExpressionObject,
+              scope: currentScope,
+            });
             if (isDefinedInScope({ variable, scope: currentScope })) {
               return; // assignment to a reference variable in the current scope is fine
             }
@@ -186,7 +219,11 @@ const rule = createRule<Options, MessageIds>({
         }
       },
       "ReturnStatement, SpreadElement, Property, VariableDeclarator"(
-        node: TSESTree.ReturnStatement | TSESTree.SpreadElement | TSESTree.Property | TSESTree.VariableDeclarator,
+        node:
+          | TSESTree.ReturnStatement
+          | TSESTree.SpreadElement
+          | TSESTree.Property
+          | TSESTree.VariableDeclarator
       ) {
         let valueNode: TSESTree.Node | null;
         switch (node.type) {
@@ -212,11 +249,17 @@ const rule = createRule<Options, MessageIds>({
           if (!currentScope) {
             return;
           }
-          const variable = getScopeVariable({ node: valueNode, scope: currentScope });
+          const variable = getScopeVariable({
+            node: valueNode,
+            scope: currentScope,
+          });
           if (isDefinedInScope({ variable, scope: currentScope })) {
             return; // assignment to a variable in the current scope is fine
           }
-          reportIssue({ node: valueNode, messageId: "cannotUseExternalMutableVariables" });
+          reportIssue({
+            node: valueNode,
+            messageId: "cannotUseExternalMutableVariables",
+          });
         }
 
         // todo account for multiple return arguments as sequence expression
@@ -228,12 +271,19 @@ const rule = createRule<Options, MessageIds>({
             // ie is global function?
             // todo check if global function is pure
             if (!isPureGlobalFunctionName(node.callee.name)) {
-              reportIssue({ node: node.callee, messageId: "cannotUseImpureFunctions" });
+              reportIssue({
+                node: node.callee,
+                messageId: "cannotUseImpureFunctions",
+              });
             }
             return;
           }
-          const variable = getScopeVariable({ node: node.callee, scope: currentScope });
-          const isGlobalFunction = !variable || variable.scope.type === "global";
+          const variable = getScopeVariable({
+            node: node.callee,
+            scope: currentScope,
+          });
+          const isGlobalFunction =
+            !variable || variable.scope.type === "global";
           if (!isGlobalFunction) {
             // using function from non-global scope is fine assuming it's pure,
             // if its imported this is a different error
@@ -284,21 +334,38 @@ const PURE_GLOBAL_FUNCTION_NAMES = new Set([
   "unescape",
 ] satisfies (keyof Window | string)[]);
 
-function isDefinedInScope({ variable, scope }: { variable: Variable | void; scope: Scope }): boolean {
-  return variable?.scope === scope && !variable.defs.some((def) => def.type === "Parameter");
+function isDefinedInScope({
+  variable,
+  scope,
+}: {
+  variable: Variable | void;
+  scope: Scope;
+}): boolean {
+  return (
+    variable?.scope === scope &&
+    !variable.defs.some((def) => def.type === "Parameter")
+  );
 }
 
 function isPureGlobalFunctionName(name: string): boolean {
   return PURE_GLOBAL_FUNCTION_NAMES.has(name);
 }
 
-function getScopeVariable({ node, scope }: { node: TSESTree.Identifier; scope: Scope }): Variable | void {
+function getScopeVariable({
+  node,
+  scope,
+}: {
+  node: TSESTree.Identifier;
+  scope: Scope;
+}): Variable | void {
   return scope.variables.find((variable) => {
     return variable.name === node.name;
   });
 }
 
-function getMemberExpressionChainNodes(node: TSESTree.MemberExpression): TSESTree.Node[] {
+function getMemberExpressionChainNodes(
+  node: TSESTree.MemberExpression
+): TSESTree.Node[] {
   if (!isMemberExpressionNode(node.object)) {
     return [node.object];
   }
