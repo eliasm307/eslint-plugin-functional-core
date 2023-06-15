@@ -12,9 +12,7 @@ import type { MessageIds, Options } from "../../src/rules/purity";
 // todo account for function spread
 // todo account for types of identifiers
 
-const ruleTester = new ESLintUtils.RuleTester({
-  parser: "@typescript-eslint/parser",
-});
+const ruleTester = new ESLintUtils.RuleTester({ parser: "@typescript-eslint/parser" });
 
 const invalid: ESLintUtils.InvalidTestCase<MessageIds, Options>[] = [
   {
