@@ -37,7 +37,8 @@ function updateVersion(currentVersion: string, updateTypeName: UpdateTypeName): 
 async function run({ cmd, args, cwd }: { cmd: "npm" | "git"; args: string[]; cwd: string }) {
   return new Promise<void>((resolve, reject) => {
     // todo dont make this windows specific
-    const spawnedProcess = spawn(`${cmd}`, args, { cwd });
+    const baseCommand = cmd === "npm" ? "npm.cmd" : cmd;
+    const spawnedProcess = spawn(baseCommand, args, { cwd });
 
     spawnedProcess.stdout.setEncoding("utf8");
     spawnedProcess.stdout.on("data", console.log);
@@ -60,58 +61,32 @@ async function run({ cmd, args, cwd }: { cmd: "npm" | "git"; args: string[]; cwd
 async function main() {
   const updateTypeName = args[0].toUpperCase() as UpdateTypeName;
   const currentVersion = packageJson.version;
-  // const newVersion = updateVersion(currentVersion, updateTypeName);
-  const newVersion = currentVersion;
+  const newVersion = updateVersion(currentVersion, updateTypeName);
 
-  // const newPackageJson = {
-  //   ...packageJson,
-  //   version: newVersion,
-  // };
-
-  // const packageJsonPath = path.resolve(__dirname, "../package.json");
-  // const newPackageJsonString = JSON.stringify(newPackageJson, null, 2);
-  // fs.writeFileSync(packageJsonPath, newPackageJsonString);
-
-  // console.log("Publishing version", newVersion, "...");
-  // await run("npm", ["publish"]);
-  // console.log("✅ Published version", newVersion);
+  const newPackageJson = { ...packageJson, version: newVersion };
+  const packageJsonPath = path.resolve(__dirname, "../package.json");
+  const newPackageJsonString = JSON.stringify(newPackageJson, null, 2);
+  fs.writeFileSync(packageJsonPath, newPackageJsonString);
 
   const rootDir = path.resolve(__dirname, "../../../");
+  console.log("Publishing version", newVersion, "...");
+  await run({ cmd: "npm", args: ["publish"], cwd: rootDir });
+  console.log("✅ Published version", newVersion);
 
   console.log("Adding...");
-  await run({
-    cmd: `git`,
-    args: ["add", "."],
-    cwd: rootDir,
-  });
+  await run({ cmd: `git`, args: ["add", "."], cwd: rootDir });
 
   console.log("Committing...");
-  await run({
-    cmd: `git`,
-    args: ["commit", "-am", `"Publish version ${newVersion}"`],
-    cwd: rootDir,
-  });
+  await run({ cmd: `git`, args: ["commit", "-am", `"Publish version ${newVersion}"`], cwd: rootDir });
 
   console.log("Tagging...");
-  await run({
-    cmd: `git`,
-    args: ["tag", `v${newVersion}`],
-    cwd: rootDir,
-  });
+  await run({ cmd: `git`, args: ["tag", `v${newVersion}`], cwd: rootDir });
 
   console.log("Pushing...");
-  await run({
-    cmd: `git`,
-    args: ["push"],
-    cwd: rootDir,
-  });
+  await run({ cmd: `git`, args: ["push"], cwd: rootDir });
 
   console.log("Pushing tags...");
-  await run({
-    cmd: `git`,
-    args: ["push", "--tags"],
-    cwd: rootDir,
-  });
+  await run({ cmd: `git`, args: ["push", "--tags"], cwd: rootDir });
 
   console.log("✅ Done");
 }
