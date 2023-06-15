@@ -33,10 +33,10 @@
     "clean": "tsc -b tsconfig.build.json --clean",
     "postclean": "rimraf dist && rimraf coverage",
     "format": "prettier --write \"./**/*.{ts,mts,cts,tsx,js,mjs,cjs,jsx,json,md,css}\" --ignore-path ../../.prettierignore",
-    "beforepublish": "npm run lint:js && npm run test && npm run typecheck && npm run format && npm run build",
-    "publish:patch": "ts-node scripts/publish.ts patch",
-    "publish:minor": "ts-node scripts/publish.ts minor",
-    "publish:major": "ts-node scripts/publish.ts major"
+    "beforepublish": "npm run lint:js && npm run test && npm run typecheck && npm run format",
+    "publish:patch": "npm run build && ts-node scripts/publish.ts patch",
+    "publish:minor": "npm run build && ts-node scripts/publish.ts minor",
+    "publish:major": "npm run build && ts-node scripts/publish.ts major"
   },
   "dependencies": {
     "@typescript-eslint/utils": "^5.59.9"

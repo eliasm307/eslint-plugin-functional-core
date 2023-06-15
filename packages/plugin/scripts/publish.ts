@@ -62,10 +62,21 @@ async function run({ cmd, args, cwd }: { cmd: "npm" | "git"; args: string[]; cwd
   });
 }
 
+// Note: Git commands are run from the root directory and npm commands are run from the plugin directory
+const rootDir = path.resolve(__dirname, "../../../");
+const pluginDir = path.resolve(__dirname, "../");
+
+async function cmdGit(args: string[]) {
+  return run({ cmd: "git", args, cwd: rootDir });
+}
+
+async function cmdNpm(args: string[]) {
+  return run({ cmd: "npm", args, cwd: pluginDir });
+}
+
 async function main() {
-  const rootDir = path.resolve(__dirname, "../../../");
   // git is clean
-  await run({ cmd: `git`, args: ["diff", "--quiet", "--exit-code"], cwd: rootDir });
+  await cmdGit(["diff", "--quiet", "--exit-code"]);
 
   const updateTypeName = args[0].toUpperCase() as UpdateTypeName;
   const currentVersion = packageJson.version;
@@ -77,23 +88,23 @@ async function main() {
   fs.writeFileSync(packageJsonPath, newPackageJsonString);
 
   console.log("Publishing version", newVersion, "...");
-  await run({ cmd: "npm", args: ["publish"], cwd: rootDir });
+  await cmdNpm(["publish"]);
   console.log("✅ Published version", newVersion);
 
   console.log("Adding...");
-  await run({ cmd: `git`, args: ["add", "."], cwd: rootDir });
+  await cmdGit(["add", "."]);
 
   console.log("Committing...");
-  await run({ cmd: `git`, args: ["commit", "-am", `Publish version ${newVersion}`], cwd: rootDir });
+  await cmdGit(["commit", "-am", `Publish version ${newVersion}`]);
 
   console.log("Tagging...");
-  await run({ cmd: `git`, args: ["tag", `v${newVersion}`], cwd: rootDir });
+  await cmdGit(["tag", `v${newVersion}`]);
 
   console.log("Pushing...");
-  await run({ cmd: `git`, args: ["push"], cwd: rootDir });
+  await cmdGit(["push"]);
 
   console.log("Pushing tags...");
-  await run({ cmd: `git`, args: ["push", "--tags"], cwd: rootDir });
+  await cmdGit(["push", "--tags"]);
 
   console.log("✅ Done");
 }

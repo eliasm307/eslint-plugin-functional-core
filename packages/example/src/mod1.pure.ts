@@ -3,12 +3,11 @@ import "eslint"; // ❌
 import mod1Impure from "./mod1"; // ❌
 import mod2Pure from "./mod2.pure";
 
-let x = 1;
-
-mod2Pure.func1(); // should error
+mod2Pure.func1(); // ❌
 
 const val = mod2Pure.func1();
 
+let x = 1;
 const mutable = {};
 function foo() {
   let y = x; // ❌
@@ -17,6 +16,8 @@ function foo() {
   const m = {
     mutable, // ❌
   };
+
+  const f = Math.random() > 0.5 ? mod1Impure : mod2Pure; // ❌
 
   [].forEach(() => {
     x = 3; // ❌
