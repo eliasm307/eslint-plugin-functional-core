@@ -1,6 +1,6 @@
 {
   "name": "eslint-plugin-functional-core",
-  "version": "0.1.4",
+  "version": "0.0.1",
   "description": "TBC",
   "license": "MIT",
   "author": "Elias Mangoro",
@@ -25,7 +25,7 @@
     "lint": "npm-run-all \"lint:*\"",
     "lint:eslint-docs": "npm-run-all \"update:eslint-docs -- --check\"",
     "lint:js": "eslint . --fix",
-    "update:eslint-docs": "npm run build && eslint-doc-generator --check",
+    "update:eslint-docs": "npm run build && eslint-doc-generator",
     "test": "echo 'Testing...' && jest --coverage",
     "testw": "echo 'Testing in watch mode...' && jest --watch",
     "typecheck": "tsc -p tsconfig.json --noEmit",
@@ -33,7 +33,7 @@
     "clean": "tsc -b tsconfig.build.json --clean",
     "postclean": "rimraf dist && rimraf coverage",
     "format": "prettier --write \"./**/*.{ts,mts,cts,tsx,js,mjs,cjs,jsx,json,md,css}\" --ignore-path ../../.prettierignore",
-    "beforepublish": "npm run update:eslint-docs && npm run lint:js && npm run test && npm run typecheck && npm run format && npm run build",
+    "beforepublish": "npm run lint:js && npm run test && npm run typecheck && npm run format && npm run build",
     "publish:patch": "ts-node scripts/publish.ts patch",
     "publish:minor": "ts-node scripts/publish.ts minor",
     "publish:major": "ts-node scripts/publish.ts major"

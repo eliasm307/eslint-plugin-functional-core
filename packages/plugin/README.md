@@ -43,8 +43,8 @@ Then configure the rules you want to use under the rules section.
 💼 Configurations enabled in.\
 ✅ Set in the `recommended` configuration.
 
-| Name                           | Description | 💼  |
-| :----------------------------- | :---------- | :-- |
+| Name                           | Description | 💼 |
+| :----------------------------- | :---------- | :- |
 | [purity](docs/rules/purity.md) | TBC         | ✅  |
 
 <!-- end auto-generated rules list -->
