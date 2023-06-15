@@ -172,7 +172,6 @@ const invalid: ESLintUtils.InvalidTestCase<MessageIds, Options>[] = [
         setTimeout(() => console.log('Impure!'), 1000);
       }
     `,
-    only: true,
     errors: [{ messageId: "cannotUseImpureFunctions" }],
   },
   {
@@ -205,19 +204,48 @@ const invalid: ESLintUtils.InvalidTestCase<MessageIds, Options>[] = [
     errors: [{ messageId: "cannotUseImpureFunctions" }],
   },
   {
-    name: "cannot modify instance properties",
+    name: "cannot modify instance properties by assignment",
     code: `
       class Impure {
         constructor() {
           this.value = 0;
         }
-
+      }
+    `,
+    errors: [{ messageId: "cannotModifyContext" }],
+  },
+  {
+    name: "cannot modify instance properties by object mutation",
+    code: `
+      class Impure {
+        constructor() {
+          this.prop.value = 0;
+        }
+      }
+    `,
+    errors: [{ messageId: "cannotModifyContext" }],
+  },
+  {
+    name: "cannot modify instance properties by incrementing",
+    code: `
+      class Impure {
         impure() {
           this.value++;
         }
       }
     `,
-    errors: [{ messageId: "cannotModifyMembers" }],
+    errors: [{ messageId: "cannotModifyContext" }],
+  },
+  {
+    name: "cannot modify instance properties by decrementing",
+    code: `
+      class Impure {
+        impure() {
+          this.value++;
+        }
+      }
+    `,
+    errors: [{ messageId: "cannotModifyContext" }],
   },
   {
     name: "cannot import impure modules by named import (without option)",
@@ -260,14 +288,24 @@ ruleTester.run("purity", rule, {
       code: `import Bar, {foo} from "./foo";`,
       // options: [{ allowImpureImports: true }],
     },
-
     {
       name: "can use pure global functions",
       code: `
         function pure() {
           const foo = structuredClone({a: 1});
-        },
+        };
       `,
+    },
+    {
+      name: "can throw errors (with option flag)",
+      code: `
+      function impure(shouldBeThrown) {
+        if (shouldBeThrown) {
+          throw new Error('Impure exception');
+        }
+      }
+    `,
+      options: [{ allowThrow: true }],
     },
   ],
   invalid: invalid.map((c) => ({ ...c, filename: "file.pure.ts" })),

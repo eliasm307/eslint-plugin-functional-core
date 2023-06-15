@@ -6,6 +6,7 @@ module.exports = {
   collectCoverage: true,
   logHeapUsage: true,
   bail: true,
+  cache: true,
   verbose: true,
   collectCoverageFrom: ["./src/**/*.{js,jsx,ts,tsx}"],
   coverageReporters: ["lcov"],
