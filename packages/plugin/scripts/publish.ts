@@ -1,3 +1,4 @@
+/* eslint-disable no-console */
 import { spawn } from "child_process";
 import fs from "fs";
 import path from "path";
@@ -7,9 +8,9 @@ import packageJson from "../package.json";
 /** In the order shown in the string ie [MAJOR].[MINOR].[PATCH] */
 const UPDATE_TYPE_LEVELS = ["MAJOR", "MINOR", "PATCH"] as const;
 type UpdateTypeName = (typeof UPDATE_TYPE_LEVELS)[number];
-const args = process.argv.slice(2);
+const argv = process.argv.slice(2);
 
-console.log("START: Publish script", args);
+console.log("START: Publish script", argv);
 
 function assertPartsAreAllNumbers(parts: number[], version: string) {
   parts.forEach((part, i) => {
@@ -48,7 +49,7 @@ async function run({ cmd, args, cwd }: { cmd: "npm" | "git"; args: string[]; cwd
 
     spawnedProcess.on("close", (code) => {
       if (code !== 0) {
-        reject(`child process exited with code ${code}`);
+        reject(Error(`child process exited with code ${code}`));
         return;
       }
       console.log(`child process exited with code ${code}`);
@@ -78,7 +79,7 @@ async function main() {
   // git is clean
   await cmdGit(["diff", "--quiet", "--exit-code"]);
 
-  const updateTypeName = args[0].toUpperCase() as UpdateTypeName;
+  const updateTypeName = argv[0].toUpperCase() as UpdateTypeName;
   const currentVersion = packageJson.version;
   const newVersion = updateVersion(currentVersion, updateTypeName);
 

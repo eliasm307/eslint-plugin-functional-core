@@ -1,6 +1,8 @@
 import { ESLintUtils } from "@typescript-eslint/utils";
 
-import rule, { MessageIds, Options } from "../../src/rules/purity";
+import rule from "../../src/rules/purity";
+
+import type { MessageIds, Options } from "../../src/rules/purity";
 
 // todo account for computed properties
 // todo account for object spread

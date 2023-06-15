@@ -1,17 +1,6 @@
-"use strict";
+const ecmConfig = require("@eliasm307/config/eslint")({ withPrettier: true });
 
 module.exports = {
+  ...ecmConfig,
   root: true,
-  parser: "@typescript-eslint/parser",
-  plugins: ["@typescript-eslint"],
-  extends: ["eslint:recommended", "plugin:eslint-plugin/recommended"],
-  env: {
-    node: true,
-  },
-  overrides: [
-    {
-      files: ["tests/**/*.js"],
-      env: { mocha: true },
-    },
-  ],
 };

@@ -1,13 +1,13 @@
-/* eslint-disable no-undef */
 // see https://typescript-eslint.io/custom-rules
 // see examples at: https://github.com/typescript-eslint/typescript-eslint/tree/main/packages/eslint-plugin
 // Selectors reference: https://eslint.org/docs/latest/extend/selectors
 // ScopeManager reference: https://eslint.org/docs/latest/extend/scope-manager-interface
 // Visualise scope: http://mazurov.github.io/escope-demo/
 
-import { analyze as analyzeScope, Scope, ScopeManager, Variable } from "@typescript-eslint/scope-manager";
-import { TSESTree } from "@typescript-eslint/utils";
+import type { Scope, ScopeManager, Variable } from "@typescript-eslint/scope-manager";
+import { analyze as analyzeScope } from "@typescript-eslint/scope-manager";
 
+import type { TSESTree } from "@typescript-eslint/utils";
 import {
   isAssignmentExpressionNode,
   isIdentifierNode,
@@ -91,7 +91,6 @@ const rule = createRule<Options, MessageIds>({
     const isPureModule = isPurePath(filename);
 
     if (!isPureModule) {
-      console.log(`Skipping purity check for impure module: ${filename}`);
       return {}; // impure modules can do whatever they want
     }
 
@@ -100,7 +99,9 @@ const rule = createRule<Options, MessageIds>({
     const ruleConfig = ruleContext.options[0] || {};
 
     function reportIssue({ node, messageId }: { node: TSESTree.Node; messageId: MessageIds }): void {
-      if (nodesWithIssues.has(node)) return;
+      if (nodesWithIssues.has(node)) {
+        return;
+      }
 
       nodesWithIssues.add(node);
       ruleContext.report({
@@ -130,7 +131,7 @@ const rule = createRule<Options, MessageIds>({
           });
         }
       },
-      "Identifier[name=globalThis], Identifier[name=window]"(node) {
+      "Identifier[name=globalThis], Identifier[name=window]": function (node) {
         reportIssue({ node, messageId: "cannotReferenceGlobalContext" });
       },
       ThisExpression(node) {
@@ -138,10 +139,9 @@ const rule = createRule<Options, MessageIds>({
         const isGlobalScope = !currentScope || currentScope.type === "global";
         if (isGlobalScope) {
           reportIssue({ node, messageId: "cannotReferenceGlobalContext" });
-          return;
         }
       },
-      "AssignmentExpression, UpdateExpression"(node: TSESTree.AssignmentExpression | TSESTree.UpdateExpression) {
+      "AssignmentExpression, UpdateExpression": function (node: TSESTree.AssignmentExpression | TSESTree.UpdateExpression) {
         const targetNode = isAssignmentExpressionNode(node) ? node.left : node.argument;
 
         // is variable reassignment?
@@ -191,7 +191,7 @@ const rule = createRule<Options, MessageIds>({
           }
         }
       },
-      "ReturnStatement, SpreadElement, Property, VariableDeclarator"(
+      "ReturnStatement, SpreadElement, Property, VariableDeclarator": function (
         node: TSESTree.ReturnStatement | TSESTree.SpreadElement | TSESTree.Property | TSESTree.VariableDeclarator,
       ) {
         let valueNode: TSESTree.Node | null;
@@ -274,7 +274,7 @@ const rule = createRule<Options, MessageIds>({
           });
         }
       },
-      "ExpressionStatement > CallExpression"(node: TSESTree.CallExpression) {
+      "ExpressionStatement > CallExpression": function (node: TSESTree.CallExpression) {
         reportIssue({ node, messageId: "cannotIgnoreFunctionCallReturnValue" });
       },
     };
