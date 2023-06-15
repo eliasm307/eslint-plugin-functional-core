@@ -7,15 +7,15 @@
 import type { Scope, ScopeManager, Variable } from "@typescript-eslint/scope-manager";
 import { analyze as analyzeScope } from "@typescript-eslint/scope-manager";
 
-import { createRule } from "../utils";
+import type { TSESTree } from "@typescript-eslint/utils";
+import { createRule } from "../utils.pure";
 import {
   isAssignmentExpressionNode,
   isIdentifierNode,
   isMemberExpressionNode,
   isThisExpressionNode,
-} from "../utils/TSESTree-predicates";
+} from "../utils.pure/TSESTree-predicates";
 
-import type { TSESTree } from "@typescript-eslint/utils";
 export type Options = [
   | {
       allowThrow?: boolean;
@@ -34,13 +34,13 @@ export type MessageIds =
   | "cannotModifyThisContext"
   | "cannotIgnoreFunctionCallReturnValue";
 
-function getScope({ node, scopeManager }: { node: TSESTree.Node; scopeManager: ScopeManager }): Scope | void {
+function getScope({ node, scopeManager }: { node: TSESTree.Node | undefined; scopeManager: ScopeManager }): Scope | void {
   while (node) {
     const scope = scopeManager.acquire(node);
     if (scope) {
       return scope;
     }
-    node = node.parent!;
+    node = node.parent;
   }
 }
 
