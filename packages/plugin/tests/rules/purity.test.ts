@@ -13,7 +13,7 @@ import type { MessageIds, Options } from "../../src/rules/purity";
 // todo account for types of identifiers
 // todo add option to disallow let and var, everything has to be const
 // todo make strict config
-// todo add builtin methods for Window, array, object, string, number
+// todo add builtin methods for Window, array, object, string, number, symbol
 
 const ruleTester = new ESLintUtils.RuleTester({ parser: "@typescript-eslint/parser" });
 
@@ -203,7 +203,7 @@ const invalid: ESLintUtils.InvalidTestCase<MessageIds, Options>[] = [
         setTimeout(() => console.log('Impure!'), 1000);
       }
     `,
-    errors: [{ messageId: "cannotUseImpureFunctions" }],
+    errors: [{ messageId: "cannotUseImpureFunctions" }, { messageId: "cannotIgnoreFunctionCallReturnValue" }],
   },
   {
     name: "cannot throw errors (without option flag)",

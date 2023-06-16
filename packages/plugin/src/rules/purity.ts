@@ -24,6 +24,7 @@ export type Options = [
     }
   | undefined,
 ];
+
 export type MessageIds =
   | "moduleCannotHaveSideEffectImports"
   | "cannotReferenceGlobalContext"
@@ -106,6 +107,7 @@ const rule = createRule<Options, MessageIds>({
         return;
       }
 
+      // todo this should add all child nodes to the set as well
       nodesWithIssues.add(node);
       ruleContext.report({
         node,
