@@ -11,6 +11,8 @@ import type { MessageIds, Options } from "../../src/rules/purity";
 // todo account for array spread
 // todo account for function spread
 // todo account for types of identifiers
+// todo add option to disallow let and var, everything has to be const
+// todo make strict config
 
 const ruleTester = new ESLintUtils.RuleTester({ parser: "@typescript-eslint/parser" });
 
