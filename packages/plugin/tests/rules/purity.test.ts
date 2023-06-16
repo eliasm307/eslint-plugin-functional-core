@@ -13,6 +13,7 @@ import type { MessageIds, Options } from "../../src/rules/purity";
 // todo account for types of identifiers
 // todo add option to disallow let and var, everything has to be const
 // todo make strict config
+// todo add builtin methods for Window, array, object, string, number
 
 const ruleTester = new ESLintUtils.RuleTester({ parser: "@typescript-eslint/parser" });
 
@@ -93,7 +94,27 @@ const invalid: ESLintUtils.InvalidTestCase<MessageIds, Options>[] = [
     code: `
       let x = 1;
       function foo() {
+        x += 1;
+      }
+    `,
+    errors: [{ messageId: "cannotModifyExternalVariables" }],
+  },
+  {
+    name: "cannot increment mutable external primitive variables using shorthand",
+    code: `
+      let x = 1;
+      function foo() {
         x++;
+      }
+    `,
+    errors: [{ messageId: "cannotModifyExternalVariables" }],
+  },
+  {
+    name: "cannot decrement mutable external primitive variables using shorthand",
+    code: `
+      let x = 1;
+      function foo() {
+        x--;
       }
     `,
     errors: [{ messageId: "cannotModifyExternalVariables" }],
@@ -103,7 +124,7 @@ const invalid: ESLintUtils.InvalidTestCase<MessageIds, Options>[] = [
     code: `
       let x = 1;
       function foo() {
-        x--;
+        x -= 1;
       }
     `,
     errors: [{ messageId: "cannotModifyExternalVariables" }],
@@ -245,7 +266,7 @@ const invalid: ESLintUtils.InvalidTestCase<MessageIds, Options>[] = [
     errors: [{ messageId: "cannotModifyThisContext" }],
   },
   {
-    name: "cannot modify instance properties by incrementing",
+    name: "cannot modify instance properties by incrementing using shorthand",
     code: `
       class Impure {
         impure() {
@@ -256,11 +277,33 @@ const invalid: ESLintUtils.InvalidTestCase<MessageIds, Options>[] = [
     errors: [{ messageId: "cannotModifyThisContext" }],
   },
   {
+    name: "cannot modify instance properties by incrementing",
+    code: `
+      class Impure {
+        impure() {
+          this.value += 1;
+        }
+      }
+    `,
+    errors: [{ messageId: "cannotModifyThisContext" }],
+  },
+  {
+    name: "cannot modify instance properties by decrementing using shorthand",
+    code: `
+      class Impure {
+        impure() {
+          this.value--;
+        }
+      }
+    `,
+    errors: [{ messageId: "cannotModifyThisContext" }],
+  },
+  {
     name: "cannot modify instance properties by decrementing",
     code: `
       class Impure {
         impure() {
-          this.value++;
+          this.value -= 1;
         }
       }
     `,
@@ -280,6 +323,26 @@ const invalid: ESLintUtils.InvalidTestCase<MessageIds, Options>[] = [
     name: "cannot call functions and ignore the return value",
     code: `mod2Pure.func1()`,
     errors: [{ messageId: "cannotIgnoreFunctionCallReturnValue" }],
+  },
+  {
+    name: "cannot spread external arrays",
+    code: `
+      const vals = [1, 2, 3];
+      function update(val) {
+          return [...vals, val];
+      }
+    `,
+    errors: [{ messageId: "cannotUseExternalMutableVariables" }],
+  },
+  {
+    name: "cannot spread external objects",
+    code: `
+      const vals = {a: 1, b: 2, c: 3};
+      function update(val) {
+          return {...vals, d: val};
+      }
+    `,
+    errors: [{ messageId: "cannotUseExternalMutableVariables" }],
   },
 ];
 
@@ -376,6 +439,41 @@ ruleTester.run("purity", rule, {
     {
       name: "functions can implicit return arguments",
       code: `const foo = [].map((val) => val);`,
+    },
+    {
+      name: "can modify local arrays",
+      code: `
+        function update(val) {
+            const vals = ["a", "b"];
+            vals[vals.length] = val;
+            return vals;
+        }
+      `,
+    },
+    {
+      name: "can spread local arrays",
+      code: `
+        function update(val) {
+            const vals = ["a", "b"];
+            return [...vals, val];
+        }
+      `,
+    },
+    {
+      name: "can spread local arrays from args",
+      code: `
+        function update(vals, val) {
+            return [...vals, val];
+        }
+      `,
+    },
+    {
+      name: "can use arguments without mutation",
+      code: `
+        function add(a,b) {
+          return a + b
+        }
+      `,
     },
   ],
   invalid: invalid.map((c) => ({ ...c, filename: "file.pure.ts" })),

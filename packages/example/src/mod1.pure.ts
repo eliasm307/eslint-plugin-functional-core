@@ -17,6 +17,8 @@ function foo() {
     mutable, // ❌
   };
 
+  m.mutable = 3; // ok because it was defined in this context
+
   const f = Math.random() > 0.5 ? mod1Impure : mod2Pure; // ❌
 
   const foo = [].map((val) => val);

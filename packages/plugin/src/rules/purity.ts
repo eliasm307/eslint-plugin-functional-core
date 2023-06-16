@@ -7,7 +7,6 @@
 import type { Scope, ScopeManager, Variable } from "@typescript-eslint/scope-manager";
 import { analyze as analyzeScope } from "@typescript-eslint/scope-manager";
 
-import type { TSESTree } from "@typescript-eslint/utils";
 import { createRule } from "../utils.pure";
 import {
   isAssignmentExpressionNode,
@@ -15,6 +14,8 @@ import {
   isMemberExpressionNode,
   isThisExpressionNode,
 } from "../utils.pure/TSESTree-predicates";
+
+import type { TSESTree } from "@typescript-eslint/utils";
 
 export type Options = [
   | {
@@ -34,7 +35,7 @@ export type MessageIds =
   | "cannotModifyThisContext"
   | "cannotIgnoreFunctionCallReturnValue";
 
-function getScope({ node, scopeManager }: { node: TSESTree.Node | undefined; scopeManager: ScopeManager }): Scope | void {
+function getScope({ node, scopeManager }: { node: TSESTree.Node | undefined; scopeManager: ScopeManager }): Scope {
   while (node) {
     const scope = scopeManager.acquire(node);
     if (scope) {
@@ -42,6 +43,8 @@ function getScope({ node, scopeManager }: { node: TSESTree.Node | undefined; sco
     }
     node = node.parent;
   }
+  // when would this happen?
+  throw new Error("Could not find scope");
 }
 
 // todo make pattern configurable
@@ -89,7 +92,6 @@ const rule = createRule<Options, MessageIds>({
     // todo make pattern for pure module paths configurable
     const filename = ruleContext.getFilename();
     const isPureModule = isPurePath(filename);
-
     if (!isPureModule) {
       return {}; // impure modules can do whatever they want
     }
@@ -97,6 +99,7 @@ const rule = createRule<Options, MessageIds>({
     let scopeManager: ScopeManager;
     const nodesWithIssues = new WeakSet<TSESTree.Node>();
     const ruleConfig = ruleContext.options[0] || {};
+    const sourceCode = ruleContext.getSourceCode();
 
     function reportIssue({ node, messageId }: { node: TSESTree.Node; messageId: MessageIds }): void {
       if (nodesWithIssues.has(node)) {
@@ -136,7 +139,7 @@ const rule = createRule<Options, MessageIds>({
       },
       ThisExpression(node) {
         const currentScope = getScope({ node, scopeManager });
-        const isGlobalScope = !currentScope || currentScope.type === "global";
+        const isGlobalScope = currentScope.type === "global";
         if (isGlobalScope) {
           reportIssue({ node, messageId: "cannotReferenceGlobalContext" });
         }
@@ -148,17 +151,14 @@ const rule = createRule<Options, MessageIds>({
         if (isIdentifierNode(targetNode)) {
           // todo track current scope implicitly when visiting functions to avoid re-calculating this a lot e.g. https://github.com/eslint/eslint-scope
           const currentScope = getScope({ node, scopeManager });
-          if (!currentScope) {
-            return;
-          }
           const assignmentTargetIdentifier = targetNode;
           const variable = getScopeVariable({
             node: assignmentTargetIdentifier,
             scope: currentScope,
           });
 
-          if (isDefinedInScope({ variable, scope: currentScope })) {
-            return; // assignment to a variable in the current scope is fine
+          if (variableIsDefinedInScope(variable, currentScope) && !variableIsParameter(variable)) {
+            return; // assignment to a variable in the current scope is fine except for parameters
           }
 
           reportIssue({ node, messageId: "cannotModifyExternalVariables" });
@@ -176,23 +176,26 @@ const rule = createRule<Options, MessageIds>({
 
           if (isIdentifierNode(rootExpressionObject)) {
             const currentScope = getScope({ node, scopeManager });
-            if (!currentScope) {
-              return;
-            }
             const variable = getScopeVariable({
               node: rootExpressionObject,
               scope: currentScope,
             });
-            if (isDefinedInScope({ variable, scope: currentScope })) {
-              return; // assignment to a reference variable in the current scope is fine
+            if (variableIsDefinedInScope(variable, currentScope) && !variableIsParameter(variable)) {
+              return; // assignment to a reference variable in the current scope is fine except for parameters
             }
 
             reportIssue({ node, messageId: "cannotModifyExternalVariables" });
           }
         }
       },
-      "ReturnStatement, SpreadElement, Property, VariableDeclarator": function (
-        node: TSESTree.ReturnStatement | TSESTree.SpreadElement | TSESTree.Property | TSESTree.VariableDeclarator,
+      // Note: Arrow function selector is for implicit returns
+      "ReturnStatement, SpreadElement, Property, VariableDeclarator, ArrowFunctionExpression[body.type=Identifier]": function (
+        node:
+          | TSESTree.ReturnStatement
+          | TSESTree.SpreadElement
+          | TSESTree.Property
+          | TSESTree.VariableDeclarator
+          | TSESTree.ArrowFunctionExpression,
       ) {
         let valueNode: TSESTree.Node | null;
         switch (node.type) {
@@ -209,21 +212,19 @@ const rule = createRule<Options, MessageIds>({
             valueNode = node.init;
             break;
 
+          case "ArrowFunctionExpression":
+            valueNode = node.body;
+            break;
+
           default:
             throw new Error(`Unexpected node type: ${node.type}`);
         }
 
         if (isIdentifierNode(valueNode)) {
           const currentScope = getScope({ node, scopeManager });
-          if (!currentScope) {
-            return;
-          }
-          const variable = getScopeVariable({
-            node: valueNode,
-            scope: currentScope,
-          });
-          if (isDefinedInScope({ variable, scope: currentScope })) {
-            return; // assignment to a variable in the current scope is fine
+          const variable = getScopeVariable({ node: valueNode, scope: currentScope });
+          if (variableIsDefinedInScope(variable, currentScope)) {
+            return; // using any variable from the current scope is fine, including parameters
           }
           reportIssue({
             node: valueNode,
@@ -236,17 +237,6 @@ const rule = createRule<Options, MessageIds>({
       CallExpression(node) {
         if (isIdentifierNode(node.callee)) {
           const currentScope = getScope({ node, scopeManager });
-          if (!currentScope) {
-            // ie is global function?
-            // todo check if global function is pure
-            if (!isPureGlobalFunctionName(node.callee.name)) {
-              reportIssue({
-                node: node.callee,
-                messageId: "cannotUseImpureFunctions",
-              });
-            }
-            return;
-          }
           const variable = getScopeVariable({
             node: node.callee,
             scope: currentScope,
@@ -302,15 +292,19 @@ const PURE_GLOBAL_FUNCTION_NAMES = new Set([
   "unescape",
 ] satisfies (keyof Window | string)[]);
 
-function isDefinedInScope({ variable, scope }: { variable: Variable | void; scope: Scope }): boolean {
-  return variable?.scope === scope && !variable.defs.some((def) => def.type === "Parameter");
+function variableIsParameter(variable: Variable | undefined): boolean {
+  return variable?.defs.some((def) => def.type === "Parameter") ?? false;
+}
+
+function variableIsDefinedInScope(variable: Variable | undefined, scope: Scope): boolean {
+  return variable?.scope === scope;
 }
 
 function isPureGlobalFunctionName(name: string): boolean {
   return PURE_GLOBAL_FUNCTION_NAMES.has(name);
 }
 
-function getScopeVariable({ node, scope }: { node: TSESTree.Identifier; scope: Scope }): Variable | void {
+function getScopeVariable({ node, scope }: { node: TSESTree.Identifier; scope: Scope }): Variable | undefined {
   return scope.variables.find((variable) => {
     return variable.name === node.name;
   });
