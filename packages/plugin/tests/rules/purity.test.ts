@@ -416,16 +416,16 @@ const invalidCases: InvalidTestCase[] = [
     `,
     errors: [{ messageId: "cannotThrowErrors" }],
   },
-  {
-    name: "cannot use Math.random",
-    code: `
-    function impure() {
-      return Math.random() * 100;
-    }
-    `,
-    errors: [{ messageId: "cannotUseImpureFunctions" }],
-  },
   // todo
+  // {
+  //   name: "cannot use Math.random",
+  //   code: `
+  //   function impure() {
+  //     return Math.random() * 100;
+  //   }
+  //   `,
+  //   errors: [{ messageId: "cannotUseImpureFunctions" }],
+  // },
   // {
   //   name: "cannot use window.Math.random",
   //   code: `

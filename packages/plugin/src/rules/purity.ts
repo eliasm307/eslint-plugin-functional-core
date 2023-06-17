@@ -22,6 +22,7 @@ import {
   variableIsDefinedInScope as variableIsDefinedInFunctionScope,
   variableIsParameter,
   variableIsImmutable,
+  isGlobalVariable,
 } from "../utils.pure/scope";
 
 export type Options = [
@@ -232,14 +233,14 @@ const rule = createRule<Options, MessageIds>({
         // todo account for multiple return arguments as sequence expression
       },
       CallExpression(node) {
+        debugger;
         if (isIdentifierNode(node.callee)) {
           const currentScope = getScope({ node, scopeManager });
           const variable = getResolvedVariable({
             node: node.callee,
             scope: currentScope,
           });
-          const isGlobalFunction = !variable || variable.scope.type === "global";
-          if (!isGlobalFunction) {
+          if (!isGlobalVariable(variable)) {
             // using function from non-global scope is fine assuming it's pure,
             // if its imported this is a different error
             return;

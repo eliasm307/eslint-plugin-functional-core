@@ -4,6 +4,7 @@ import { ScopeType } from "@typescript-eslint/scope-manager";
 import { isLiteralNode, isTemplateLiteralNode } from "./TSESTree-predicates";
 
 // todo update to use recursion
+/** Gets the immediate scope from a node */
 export function getScope({ node, scopeManager }: { node: TSESTree.Node | undefined; scopeManager: ScopeManager }): Scope {
   while (node) {
     const scope = scopeManager.acquire(node);
@@ -59,4 +60,8 @@ export function variableIsImmutable(variable: Variable | undefined): boolean {
 
   const isPrimitiveValue = isLiteralNode(definition.node?.init) || isTemplateLiteralNode(definition.node?.init);
   return isPrimitiveValue && definition.parent?.kind === "const";
+}
+
+export function isGlobalVariable(variable: Variable | undefined): boolean {
+  return !variable; // globals wont be resolved to Scope variables
 }
