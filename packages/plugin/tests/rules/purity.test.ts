@@ -15,9 +15,184 @@ import type { MessageIds, Options } from "../../src/rules/purity";
 // todo make strict config
 // todo add builtin methods for Window, array, object, string, number, symbol
 
+type ValidTestCase = ESLintUtils.ValidTestCase<Options>;
+type InvalidTestCase = ESLintUtils.InvalidTestCase<MessageIds, Options>;
+
 const ruleTester = new ESLintUtils.RuleTester({ parser: "@typescript-eslint/parser" });
 
-const invalid: ESLintUtils.InvalidTestCase<MessageIds, Options>[] = [
+const validCases: ValidTestCase[] = [
+  {
+    name: "can use immutable external primitive variables",
+    code: `
+      const x = 1;
+      function foo() {
+        const y = x;
+      }
+    `,
+  },
+  {
+    name: "can mutate internal reference variables",
+    code: `
+      function foo() {
+        const x = {};
+        x.a = 1;
+      }
+    `,
+  },
+  {
+    name: "can import from other pure modules",
+    code: `import Bar, { foo } from "./foo.pure";`,
+  },
+  {
+    name: "can import types from impure modules",
+    code: `
+      import type Bar from "./foo";
+      import type { foo } from "./foo";
+    `,
+  },
+  {
+    name: "can use pure global functions",
+    code: `
+      function func() {
+        const foo = structuredClone({a: 1});
+      };
+    `,
+  },
+  {
+    name: "can use pure global functions from window",
+    code: `
+      function func() {
+        const foo = window.structuredClone({a: 1});
+      };
+    `,
+  },
+  {
+    name: "can throw errors (with option flag)",
+    code: `
+      function func(shouldBeThrown) {
+        if (shouldBeThrown) {
+          throw new Error('Impure exception');
+        }
+      }
+  `,
+    options: [{ allowThrow: true }],
+  },
+  {
+    name: "can use console (with option flag)",
+    code: `
+      function func() {
+        console.log("foo");
+        console.warn("foo");
+        console.error("foo");
+        console.debug("foo");
+        console.verbose("foo");
+        console.table([]);
+        console.dir([]);
+      }
+    `,
+    // options: [{ allowConsole: true }],
+  },
+  {
+    name: "can use pure Math methods",
+    code: `
+      function impure() {
+        return Math.sqrt(4);
+      }
+  `,
+  },
+  {
+    name: "can use pure window.Math methods",
+    code: `
+      function impure() {
+        return window.Math.sqrt(4)
+      }
+  `,
+  },
+  {
+    name: "functions can explicit return arguments",
+    code: `
+      const foo2 = [].map((val) => {
+        return val;
+      });
+    `,
+  },
+  {
+    name: "functions can implicit return arguments",
+    code: `const foo = [].map((val) => val);`,
+  },
+  {
+    name: "can modify local arrays",
+    code: `
+      function update(val) {
+          const vals = ["a", "b"];
+          vals[vals.length] = val;
+          return vals;
+      }
+    `,
+  },
+  {
+    name: "can spread local arrays",
+    code: `
+      function update(val) {
+          const vals = ["a", "b"];
+          return [...vals, val];
+      }
+    `,
+  },
+  {
+    name: "can spread local arrays from args",
+    code: `
+      function update(vals, val) {
+          return [...vals, val];
+      }
+    `,
+  },
+  {
+    name: "can use arguments without mutation",
+    code: `
+      function add(a,b) {
+        return a + b
+      }
+    `,
+  },
+  {
+    name: "can destructure arguments",
+    code: `function add({a,b}) {}`,
+  },
+  {
+    name: "can destructure arguments with custom names",
+    code: `function add({a: c, b: d}) {}`,
+  },
+  {
+    name: "can destructure arguments with default values",
+    code: `function add({a = 1, b = 2}) {}`,
+  },
+  {
+    name: "can destructure arguments with default values and custom names",
+    code: `function add({a: c = 1, b: d = 2}) {}`,
+  },
+  {
+    name: "can destructure arguments with default values and custom names inside function body",
+    code: `
+      function add(props) {
+        const {a: c = 1, b: d = 2} = props;
+      }
+    `,
+  },
+  {
+    name: "can re-assign arguments",
+    code: `
+      function getParent(node) {
+        while(node.parentNode) {
+          node = node.parentNode;
+        }
+        return node;
+      }
+    `,
+  },
+];
+
+const invalidCases: InvalidTestCase[] = [
   {
     name: "cannot modify properties of this",
     code: `
@@ -74,9 +249,7 @@ const invalid: ESLintUtils.InvalidTestCase<MessageIds, Options>[] = [
   },
   {
     name: "cannot have side-effect imports",
-    code: `
-      import "side-effect";
-    `,
+    code: `import "side-effect";`,
     errors: [{ messageId: "moduleCannotHaveSideEffectImports" }],
   },
   {
@@ -346,135 +519,11 @@ const invalid: ESLintUtils.InvalidTestCase<MessageIds, Options>[] = [
   },
 ];
 
+function inPureFile<Case extends ValidTestCase | InvalidTestCase>(c: Case): Case {
+  return { ...c, filename: "file.pure.ts" };
+}
+
 ruleTester.run("purity", rule, {
-  valid: [
-    {
-      name: "can use immutable external primitive variables",
-      code: `
-        const x = 1;
-        function foo() {
-          const y = x;
-        }
-      `,
-    },
-    {
-      name: "can mutate internal reference variables",
-      code: `
-        function foo() {
-          const x = {};
-          x.a = 1;
-        }
-      `,
-    },
-    {
-      name: "can import other pure modules",
-      code: `import Bar, { foo } from "./foo.pure";`,
-    },
-    {
-      name: "can use pure global functions",
-      code: `
-        function func() {
-          const foo = structuredClone({a: 1});
-        };
-      `,
-    },
-    {
-      name: "can use pure global functions from window",
-      code: `
-        function func() {
-          const foo = window.structuredClone({a: 1});
-        };
-      `,
-    },
-    {
-      name: "can throw errors (with option flag)",
-      code: `
-        function func(shouldBeThrown) {
-          if (shouldBeThrown) {
-            throw new Error('Impure exception');
-          }
-        }
-    `,
-      options: [{ allowThrow: true }],
-    },
-    {
-      name: "can use console (with option flag)",
-      code: `
-        function func() {
-          console.log("foo");
-          console.warn("foo");
-          console.error("foo");
-          console.debug("foo");
-          console.verbose("foo");
-          console.table([]);
-          console.dir([]);
-        }
-    `,
-      options: [{ allowConsole: true }],
-    },
-    {
-      name: "can use pure Math methods",
-      code: `
-        function impure() {
-          return Math.sqrt(4);
-        }
-    `,
-    },
-    {
-      name: "can use pure window.Math methods",
-      code: `
-        function impure() {
-          return window.Math.sqrt(4)
-        }
-    `,
-    },
-    {
-      name: "functions can explicit return arguments",
-      code: `
-        const foo2 = [].map((val) => {
-          return val;
-        });
-      `,
-    },
-    {
-      name: "functions can implicit return arguments",
-      code: `const foo = [].map((val) => val);`,
-    },
-    {
-      name: "can modify local arrays",
-      code: `
-        function update(val) {
-            const vals = ["a", "b"];
-            vals[vals.length] = val;
-            return vals;
-        }
-      `,
-    },
-    {
-      name: "can spread local arrays",
-      code: `
-        function update(val) {
-            const vals = ["a", "b"];
-            return [...vals, val];
-        }
-      `,
-    },
-    {
-      name: "can spread local arrays from args",
-      code: `
-        function update(vals, val) {
-            return [...vals, val];
-        }
-      `,
-    },
-    {
-      name: "can use arguments without mutation",
-      code: `
-        function add(a,b) {
-          return a + b
-        }
-      `,
-    },
-  ],
-  invalid: invalid.map((c) => ({ ...c, filename: "file.pure.ts" })),
+  valid: validCases.map(inPureFile),
+  invalid: invalidCases.map(inPureFile),
 });

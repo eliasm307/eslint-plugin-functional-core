@@ -4,9 +4,9 @@
 // ScopeManager reference: https://eslint.org/docs/latest/extend/scope-manager-interface
 // Visualise scope: http://mazurov.github.io/escope-demo/
 
-import type { Scope, ScopeManager, Variable } from "@typescript-eslint/scope-manager";
+import type { ScopeManager } from "@typescript-eslint/scope-manager";
 import { analyze as analyzeScope } from "@typescript-eslint/scope-manager";
-
+import type { TSESTree } from "@typescript-eslint/utils";
 import { createRule } from "../utils.pure";
 import {
   isAssignmentExpressionNode,
@@ -14,13 +14,17 @@ import {
   isMemberExpressionNode,
   isThisExpressionNode,
 } from "../utils.pure/TSESTree-predicates";
-
-import type { TSESTree } from "@typescript-eslint/utils";
+import {
+  getScope,
+  getResolvedVariable,
+  variableIsDefinedInScope,
+  variableIsParameter,
+  variableIsImmutable,
+} from "../utils.pure/scope";
 
 export type Options = [
   | {
       allowThrow?: boolean;
-      allowConsole?: boolean;
     }
   | undefined,
 ];
@@ -35,23 +39,6 @@ export type MessageIds =
   | "cannotImportImpureModules"
   | "cannotModifyThisContext"
   | "cannotIgnoreFunctionCallReturnValue";
-
-function getScope({ node, scopeManager }: { node: TSESTree.Node | undefined; scopeManager: ScopeManager }): Scope {
-  while (node) {
-    const scope = scopeManager.acquire(node);
-    if (scope) {
-      return scope;
-    }
-    node = node.parent;
-  }
-  // when would this happen?
-  throw new Error("Could not find scope");
-}
-
-// todo make pattern configurable
-function isPurePath(path: string): boolean {
-  return /\.pure\b/.test(path);
-}
 
 const rule = createRule<Options, MessageIds>({
   name: "purity",
@@ -80,9 +67,6 @@ const rule = createRule<Options, MessageIds>({
           allowThrow: {
             type: "boolean",
           },
-          allowConsole: {
-            type: "boolean",
-          },
         },
       },
     ],
@@ -100,6 +84,7 @@ const rule = createRule<Options, MessageIds>({
     let scopeManager: ScopeManager;
     const nodesWithIssues = new WeakSet<TSESTree.Node>();
     const ruleConfig = ruleContext.options[0] || {};
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
     const sourceCode = ruleContext.getSourceCode();
 
     function reportIssue({ node, messageId }: { node: TSESTree.Node; messageId: MessageIds }): void {
@@ -122,6 +107,9 @@ const rule = createRule<Options, MessageIds>({
         });
       },
       ImportDeclaration(node) {
+        if (node.importKind === "type") {
+          return; // type imports have no runtime effect and so are pure
+        }
         if (node.specifiers.length === 0) {
           reportIssue({
             node,
@@ -154,7 +142,7 @@ const rule = createRule<Options, MessageIds>({
           // todo track current scope implicitly when visiting functions to avoid re-calculating this a lot e.g. https://github.com/eslint/eslint-scope
           const currentScope = getScope({ node, scopeManager });
           const assignmentTargetIdentifier = targetNode;
-          const variable = getScopeVariable({
+          const variable = getResolvedVariable({
             node: assignmentTargetIdentifier,
             scope: currentScope,
           });
@@ -178,7 +166,7 @@ const rule = createRule<Options, MessageIds>({
 
           if (isIdentifierNode(rootExpressionObject)) {
             const currentScope = getScope({ node, scopeManager });
-            const variable = getScopeVariable({
+            const variable = getResolvedVariable({
               node: rootExpressionObject,
               scope: currentScope,
             });
@@ -224,9 +212,12 @@ const rule = createRule<Options, MessageIds>({
 
         if (isIdentifierNode(valueNode)) {
           const currentScope = getScope({ node, scopeManager });
-          const variable = getScopeVariable({ node: valueNode, scope: currentScope });
+          const variable = getResolvedVariable({ node: valueNode, scope: currentScope });
           if (variableIsDefinedInScope(variable, currentScope)) {
             return; // using any variable from the current scope is fine, including parameters
+          }
+          if (variableIsImmutable(variable)) {
+            return; // using any immutable variable is fine
           }
           reportIssue({
             node: valueNode,
@@ -239,7 +230,7 @@ const rule = createRule<Options, MessageIds>({
       CallExpression(node) {
         if (isIdentifierNode(node.callee)) {
           const currentScope = getScope({ node, scopeManager });
-          const variable = getScopeVariable({
+          const variable = getResolvedVariable({
             node: node.callee,
             scope: currentScope,
           });
@@ -294,22 +285,13 @@ const PURE_GLOBAL_FUNCTION_NAMES = new Set([
   "unescape",
 ] satisfies (keyof Window | string)[]);
 
-function variableIsParameter(variable: Variable | undefined): boolean {
-  return variable?.defs.some((def) => def.type === "Parameter") ?? false;
-}
-
-function variableIsDefinedInScope(variable: Variable | undefined, scope: Scope): boolean {
-  return variable?.scope === scope;
+// todo make pattern configurable
+function isPurePath(path: string): boolean {
+  return /\.pure\b/.test(path);
 }
 
 function isPureGlobalFunctionName(name: string): boolean {
   return PURE_GLOBAL_FUNCTION_NAMES.has(name);
-}
-
-function getScopeVariable({ node, scope }: { node: TSESTree.Identifier; scope: Scope }): Variable | undefined {
-  return scope.variables.find((variable) => {
-    return variable.name === node.name;
-  });
 }
 
 function getMemberExpressionChainNodes(node: TSESTree.MemberExpression): TSESTree.Node[] {

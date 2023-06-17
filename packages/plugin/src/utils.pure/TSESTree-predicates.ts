@@ -39,6 +39,9 @@ export const isPropertyNode = (node: TSESTree.Node | null | undefined): node is 
 export const isLiteralNode = (node: TSESTree.Node | null | undefined): node is TSESTree.Literal =>
   node?.type === AST_NODE_TYPES.Literal;
 
+export const isTemplateLiteralNode = (node: TSESTree.Node | null | undefined): node is TSESTree.TemplateLiteral =>
+  node?.type === AST_NODE_TYPES.TemplateLiteral;
+
 export const isIdentifierNode = (node: TSESTree.Node | null | undefined): node is TSESTree.Identifier =>
   node?.type === AST_NODE_TYPES.Identifier;
 
