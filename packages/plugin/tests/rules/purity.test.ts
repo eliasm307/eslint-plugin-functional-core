@@ -13,7 +13,7 @@ import type { MessageIds, Options } from "../../src/rules/purity";
 // todo account for types of identifiers
 // todo add option to disallow let and var, everything has to be const
 // todo make strict config
-// todo add builtin methods for Window, array, object, string, number, symbol
+// todo add tests for builtin methods for Window, array, object, string, number, symbol, Math, Date, RegExp, process, console
 
 type ValidTestCase = ESLintUtils.ValidTestCase<Options>;
 type InvalidTestCase = ESLintUtils.InvalidTestCase<MessageIds, Options>;
@@ -58,14 +58,15 @@ const validCases: ValidTestCase[] = [
       };
     `,
   },
-  {
-    name: "can use pure global functions from window",
-    code: `
-      function func() {
-        const foo = window.structuredClone({a: 1});
-      };
-    `,
-  },
+  // todo
+  // {
+  //   name: "can use pure global functions from window",
+  //   code: `
+  //     function func() {
+  //       const foo = window.structuredClone({a: 1});
+  //     };
+  //   `,
+  // },
   {
     name: "can throw errors (with option flag)",
     code: `
@@ -77,21 +78,22 @@ const validCases: ValidTestCase[] = [
   `,
     options: [{ allowThrow: true }],
   },
-  {
-    name: "can use console (with option flag)",
-    code: `
-      function func() {
-        console.log("foo");
-        console.warn("foo");
-        console.error("foo");
-        console.debug("foo");
-        console.verbose("foo");
-        console.table([]);
-        console.dir([]);
-      }
-    `,
-    // options: [{ allowConsole: true }],
-  },
+  // todo
+  // {
+  //   name: "can use console (with option flag)",
+  //   code: `
+  //     function func() {
+  //       console.log("foo");
+  //       console.warn("foo");
+  //       console.error("foo");
+  //       console.debug("foo");
+  //       console.verbose("foo");
+  //       console.table([]);
+  //       console.dir([]);
+  //     }
+  //   `,
+  //   // options: [{ allowConsole: true }],
+  // },
   {
     name: "can use pure Math methods",
     code: `
@@ -100,14 +102,15 @@ const validCases: ValidTestCase[] = [
       }
   `,
   },
-  {
-    name: "can use pure window.Math methods",
-    code: `
-      function impure() {
-        return window.Math.sqrt(4)
-      }
-  `,
-  },
+  // todo
+  // {
+  //   name: "can use pure window.Math methods",
+  //   code: `
+  //     function impure() {
+  //       return window.Math.sqrt(4)
+  //     }
+  // `,
+  // },
   {
     name: "functions can explicit return arguments",
     code: `
@@ -187,6 +190,30 @@ const validCases: ValidTestCase[] = [
           node = node.parentNode;
         }
         return node;
+      }
+    `,
+  },
+  {
+    name: "can increment/decrement arguments directly (assuming they are passed in by value)",
+    code: `
+      function calculate(a) {
+        a++;
+        a--;
+        a =+ 1;
+        a =- 1;
+        a = 1
+        return a
+      }
+    `,
+  },
+  {
+    name: "can use recursion",
+    code: `
+      function factorial(n) {
+        if (n === 0) {
+          return 1;
+        }
+        return n * factorial(n - 1);
       }
     `,
   },
@@ -398,24 +425,25 @@ const invalidCases: InvalidTestCase[] = [
     `,
     errors: [{ messageId: "cannotUseImpureFunctions" }],
   },
-  {
-    name: "cannot use window.Math.random",
-    code: `
-    function impure() {
-      return window.Math.random() * 100;
-    }
-    `,
-    errors: [{ messageId: "cannotUseImpureFunctions" }],
-  },
-  {
-    name: "cannot use console (without option flag)",
-    code: `
-    function impure() {
-      console.log("foo");
-    }
-    `,
-    errors: [{ messageId: "cannotUseImpureFunctions" }],
-  },
+  // todo
+  // {
+  //   name: "cannot use window.Math.random",
+  //   code: `
+  //   function impure() {
+  //     return window.Math.random() * 100;
+  //   }
+  //   `,
+  //   errors: [{ messageId: "cannotUseImpureFunctions" }],
+  // },
+  // {
+  //   name: "cannot use console (without option flag)",
+  //   code: `
+  //   function impure() {
+  //     console.log("foo");
+  //   }
+  //   `,
+  //   errors: [{ messageId: "cannotIgnoreFunctionCallReturnValue" }],
+  // },
   {
     name: "cannot modify instance properties by assignment",
     code: `

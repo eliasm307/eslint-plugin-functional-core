@@ -1,7 +1,9 @@
 import type { Scope, ScopeManager, Variable } from "@typescript-eslint/scope-manager";
 import type { TSESTree } from "@typescript-eslint/utils";
+import { ScopeType } from "@typescript-eslint/scope-manager";
 import { isLiteralNode, isTemplateLiteralNode } from "./TSESTree-predicates";
 
+// todo update to use recursion
 export function getScope({ node, scopeManager }: { node: TSESTree.Node | undefined; scopeManager: ScopeManager }): Scope {
   while (node) {
     const scope = scopeManager.acquire(node);
@@ -19,7 +21,17 @@ export function variableIsParameter(variable: Variable | undefined): boolean {
 }
 
 export function variableIsDefinedInScope(variable: Variable | undefined, scope: Scope): boolean {
-  return variable?.scope === scope;
+  const isDefinedInScope = variable?.scope === scope;
+  if (isDefinedInScope) {
+    return true;
+  }
+
+  if (scope.type === ScopeType.function || !scope.upper) {
+    return false; // we are at the top of the local function scope
+  }
+
+  // this was not the function scope so check the parent scope
+  return variableIsDefinedInScope(variable, scope.upper);
 }
 
 export function getResolvedVariable({ node, scope }: { node: TSESTree.Identifier; scope: Scope }): Variable | undefined {

@@ -7,17 +7,19 @@
 import type { ScopeManager } from "@typescript-eslint/scope-manager";
 import { analyze as analyzeScope } from "@typescript-eslint/scope-manager";
 import type { TSESTree } from "@typescript-eslint/utils";
+import { isVariableDeclarator } from "@typescript-eslint/utils/dist/ast-utils";
 import { createRule } from "../utils.pure";
 import {
   isAssignmentExpressionNode,
   isIdentifierNode,
   isMemberExpressionNode,
   isThisExpressionNode,
+  isVariableDeclaratorNode,
 } from "../utils.pure/TSESTree-predicates";
 import {
   getScope,
   getResolvedVariable,
-  variableIsDefinedInScope,
+  variableIsDefinedInScope as variableIsDefinedInFunctionScope,
   variableIsParameter,
   variableIsImmutable,
 } from "../utils.pure/scope";
@@ -139,6 +141,7 @@ const rule = createRule<Options, MessageIds>({
 
         // is variable reassignment?
         if (isIdentifierNode(targetNode)) {
+          debugger;
           // todo track current scope implicitly when visiting functions to avoid re-calculating this a lot e.g. https://github.com/eslint/eslint-scope
           const currentScope = getScope({ node, scopeManager });
           const assignmentTargetIdentifier = targetNode;
@@ -147,7 +150,8 @@ const rule = createRule<Options, MessageIds>({
             scope: currentScope,
           });
 
-          if (variableIsDefinedInScope(variable, currentScope) && !variableIsParameter(variable)) {
+          if (variableIsDefinedInFunctionScope(variable, currentScope)) {
+            // if(variableIsParameter(variable) && is)
             return; // assignment to a variable in the current scope is fine except for parameters
           }
 
@@ -170,7 +174,7 @@ const rule = createRule<Options, MessageIds>({
               node: rootExpressionObject,
               scope: currentScope,
             });
-            if (variableIsDefinedInScope(variable, currentScope) && !variableIsParameter(variable)) {
+            if (variableIsDefinedInFunctionScope(variable, currentScope) && !variableIsParameter(variable)) {
               return; // assignment to a reference variable in the current scope is fine except for parameters
             }
 
@@ -213,7 +217,7 @@ const rule = createRule<Options, MessageIds>({
         if (isIdentifierNode(valueNode)) {
           const currentScope = getScope({ node, scopeManager });
           const variable = getResolvedVariable({ node: valueNode, scope: currentScope });
-          if (variableIsDefinedInScope(variable, currentScope)) {
+          if (variableIsDefinedInFunctionScope(variable, currentScope)) {
             return; // using any variable from the current scope is fine, including parameters
           }
           if (variableIsImmutable(variable)) {
