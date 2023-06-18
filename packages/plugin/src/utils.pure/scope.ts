@@ -3,12 +3,16 @@ import type { TSESTree } from "@typescript-eslint/utils";
 import { ScopeType } from "@typescript-eslint/scope-manager";
 import { isLiteralNode, isTemplateLiteralNode } from "./TSESTree";
 
-// todo update to use recursion
+const nodeToImmediateScopeMap = new WeakMap<TSESTree.Node, Scope>();
+
 /** Gets the immediate scope from a node */
 export function getScope({ node, scopeManager }: { node: TSESTree.Node | undefined; scopeManager: ScopeManager }): Scope {
+  const visitedNodes = new Set<TSESTree.Node>();
   while (node) {
-    const scope = scopeManager.acquire(node);
+    const scope = nodeToImmediateScopeMap.get(node) || scopeManager.acquire(node);
+    visitedNodes.add(node);
     if (scope) {
+      visitedNodes.forEach((visitedNode) => nodeToImmediateScopeMap.set(visitedNode, scope));
       return scope;
     }
     node = node.parent;
