@@ -10,9 +10,13 @@ export function getScope({ node, scopeManager }: { node: TSESTree.Node | undefin
   const visitedNodes = new Set<TSESTree.Node>();
   while (node) {
     const scope = nodeToImmediateScopeMap.get(node) || scopeManager.acquire(node);
+    // eslint-disable-next-line functional-core/purity -- side effect of caching
     visitedNodes.add(node);
     if (scope) {
-      visitedNodes.forEach((visitedNode) => nodeToImmediateScopeMap.set(visitedNode, scope));
+      // eslint-disable-next-line functional-core/purity -- side effect of caching
+      visitedNodes.forEach((visitedNode) => {
+        return nodeToImmediateScopeMap.set(visitedNode, scope);
+      });
       return scope;
     }
     node = node.parent;
