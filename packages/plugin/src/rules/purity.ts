@@ -19,7 +19,7 @@ import {
   isGlobalVariable,
 } from "../utils.pure/scope";
 
-type RuleConfig = {
+export type RuleConfig = {
   allowThrow?: boolean;
   pureModules?: string[];
 };

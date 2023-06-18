@@ -2,7 +2,7 @@
   "extends": "../../tsconfig.base.json",
   "compilerOptions": {
     // specifically disable declarations for the plugin
-    "declaration": false,
+    "declaration": true,
     "declarationMap": false,
     "outDir": "./dist",
     "rootDir": "./src",
