@@ -7,14 +7,13 @@
 import type { ScopeManager } from "@typescript-eslint/scope-manager";
 import { analyze as analyzeScope } from "@typescript-eslint/scope-manager";
 import type { TSESTree } from "@typescript-eslint/utils";
-import { isVariableDeclarator } from "@typescript-eslint/utils/dist/ast-utils";
+import type { JSONSchema4 } from "@typescript-eslint/utils/dist/json-schema";
 import { createRule } from "../utils.pure";
 import {
   isAssignmentExpressionNode,
   isIdentifierNode,
   isMemberExpressionNode,
   isThisExpressionNode,
-  isVariableDeclaratorNode,
 } from "../utils.pure/TSESTree-predicates";
 import {
   getScope,
@@ -25,12 +24,12 @@ import {
   isGlobalVariable,
 } from "../utils.pure/scope";
 
-export type Options = [
-  | {
-      allowThrow?: boolean;
-    }
-  | undefined,
-];
+type RuleConfig = {
+  allowThrow?: boolean;
+  pureModules?: string[];
+};
+
+export type Options = [RuleConfig | undefined];
 
 export type MessageIds =
   | "moduleCannotHaveSideEffectImports"
@@ -51,17 +50,18 @@ const rule = createRule<Options, MessageIds>({
       description: "TBC",
       recommended: false,
     },
+    // mixing file and module terminology here for accuracy as it could be a script or module in some cases
     messages: {
       moduleCannotHaveSideEffectImports: "A pure module cannot have imports without specifiers, this is likely a side-effect",
-      cannotReferenceGlobalContext: "A pure module/function cannot use global context",
+      cannotReferenceGlobalContext: "A pure file/function cannot use global context",
       cannotModifyExternalVariables: "A pure function cannot modify external variables",
       cannotUseExternalMutableVariables: "A pure function cannot use external mutable variables",
-      cannotUseImpureFunctions: "A pure module/function cannot use impure functions",
+      cannotUseImpureFunctions: "A pure file/function cannot use impure functions",
       cannotImportImpureModules: "Pure modules cannot import impure modules",
-      cannotThrowErrors: "A pure module/function cannot throw errors",
-      cannotModifyThisContext: "A pure module/function cannot modify 'this'",
+      cannotThrowErrors: "A pure file/function cannot throw errors",
+      cannotModifyThisContext: "A pure file/function cannot modify 'this'",
       cannotIgnoreFunctionCallReturnValue:
-        "A pure module/function cannot ignore function call return values, this is likely a side-effect",
+        "A pure file/function cannot ignore function call return values, this is likely a side-effect",
     },
     schema: [
       {
@@ -69,40 +69,57 @@ const rule = createRule<Options, MessageIds>({
         properties: {
           allowThrow: {
             type: "boolean",
+            description: "Whether to allow throwing errors in pure files/functions",
           },
-        },
+          // this option is shared so cant split the rule into smaller rules
+          pureModules: {
+            type: "array",
+            description:
+              "An array of RegExp patterns that match pure file paths, where this rule will be enabled. \nFile paths including folders or files including '.pure' e.g. 'src/utils.pure/index.ts' or 'src/utils/index.pure.ts' are always considered pure.",
+            items: {
+              type: "string",
+              minLength: 1,
+            },
+          },
+        } satisfies Record<keyof RuleConfig, JSONSchema4>,
       },
     ],
   },
   defaultOptions: [{}],
   create(ruleContext) {
+    const ruleConfig = ruleContext.options[0] || {};
+    const purePathRegexes = ruleConfig.pureModules?.map((pattern) => new RegExp(pattern)) ?? [];
+    purePathRegexes.push(/\.pure\b/);
+    function isPureModulePath(path: string): boolean {
+      return purePathRegexes.some((regex) => regex.test(path));
+    }
+
     // todo allow items in impure modules to be marked as pure
     // todo make pattern for pure module paths configurable
     const filename = ruleContext.getFilename();
-    const isPureModule = isPurePath(filename);
-    if (!isPureModule) {
+    debugger;
+    const isPureFile = isPureModulePath(filename);
+    if (!isPureFile) {
       return {}; // impure modules can do whatever they want
     }
 
-    let scopeManager: ScopeManager;
-    const nodesWithIssues = new WeakSet<TSESTree.Node>();
-    const ruleConfig = ruleContext.options[0] || {};
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    const sourceCode = ruleContext.getSourceCode();
-
+    const nodesWithExistingIssues = new WeakSet<TSESTree.Node>();
     function reportIssue({ node, messageId }: { node: TSESTree.Node; messageId: MessageIds }): void {
-      if (nodesWithIssues.has(node)) {
+      if (nodesWithExistingIssues.has(node)) {
         return;
       }
 
       // todo this should add all child nodes to the set as well
-      nodesWithIssues.add(node);
+      nodesWithExistingIssues.add(node);
       ruleContext.report({
         node,
         messageId,
       });
     }
 
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    const sourceCode = ruleContext.getSourceCode();
+    let scopeManager: ScopeManager;
     return {
       Program(node) {
         scopeManager = analyzeScope(node, {
@@ -120,7 +137,7 @@ const rule = createRule<Options, MessageIds>({
           });
           return;
         }
-        if (!isPurePath(node.source.value)) {
+        if (!isPureModulePath(node.source.value)) {
           reportIssue({
             node,
             messageId: "cannotImportImpureModules",
@@ -142,8 +159,6 @@ const rule = createRule<Options, MessageIds>({
 
         // is variable reassignment?
         if (isIdentifierNode(targetNode)) {
-          debugger;
-          // todo track current scope implicitly when visiting functions to avoid re-calculating this a lot e.g. https://github.com/eslint/eslint-scope
           const currentScope = getScope({ node, scopeManager });
           const assignmentTargetIdentifier = targetNode;
           const variable = getResolvedVariable({
@@ -289,11 +304,6 @@ const PURE_GLOBAL_FUNCTION_NAMES = new Set([
   "escape",
   "unescape",
 ] satisfies (keyof Window | string)[]);
-
-// todo make pattern configurable
-function isPurePath(path: string): boolean {
-  return /\.pure\b/.test(path);
-}
 
 function isPureGlobalFunctionName(name: string): boolean {
   return PURE_GLOBAL_FUNCTION_NAMES.has(name);

@@ -217,6 +217,16 @@ const validCases: ValidTestCase[] = [
       }
     `,
   },
+  {
+    name: "can import impure modules (with option)",
+    code: `
+      import { foo } from "foo";
+      import foo from "foo";
+      import { bar } from "./dir/bar";
+      import bar from "./dir/bar";
+    `,
+    options: [{ pureModules: ["^foo$", "\\/dir\\/"] }],
+  },
 ];
 
 const invalidCases: InvalidTestCase[] = [
@@ -511,13 +521,29 @@ const invalidCases: InvalidTestCase[] = [
     errors: [{ messageId: "cannotModifyThisContext" }],
   },
   {
-    name: "cannot import impure modules by named import (without option)",
+    name: "cannot import impure relative modules by named import (without option)",
     code: `import { foo } from "./foo";`,
     errors: [{ messageId: "cannotImportImpureModules" }],
   },
   {
-    name: "cannot import impure modules by default import (without option)",
+    name: "cannot import impure relative modules by default import (without option)",
     code: `import foo from "./foo";`,
+    errors: [{ messageId: "cannotImportImpureModules" }],
+  },
+  {
+    name: "cannot import impure absolute modules by named import (without option)",
+    code: `import { foo } from "foo";`,
+    errors: [{ messageId: "cannotImportImpureModules" }],
+  },
+  {
+    name: "cannot import impure absolute modules by default import (without option)",
+    code: `import foo from "foo";`,
+    errors: [{ messageId: "cannotImportImpureModules" }],
+  },
+  {
+    name: "cannot import impure modules that partially match pattern",
+    code: `import foo from "./tests/foo";`,
+    options: [{ pureModules: ["\\/test\\/"] }],
     errors: [{ messageId: "cannotImportImpureModules" }],
   },
   {
