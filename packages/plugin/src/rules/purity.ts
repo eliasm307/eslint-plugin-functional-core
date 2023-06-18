@@ -86,6 +86,8 @@ const rule = createRule<Options, MessageIds>({
     const ruleConfig = ruleContext.options[0] || {};
     const purePathRegexes = ruleConfig.pureModules?.map((pattern) => new RegExp(pattern)) ?? [];
     purePathRegexes.push(/\.pure\b/);
+
+    // todo add tests around this, eg for builtin module handling
     function isPureModulePath(path: string): boolean {
       path = getAbsolutePath({ pathToResolve: path, fromAbsoluteAbsoluteFilePath: filename });
       return isBuiltInPureModuleImport(path) || purePathRegexes.some((regex) => regex.test(path));

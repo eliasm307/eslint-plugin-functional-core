@@ -36,10 +36,11 @@ function foo() {
     return out;
   }, {});
 
-  [].forEach(() => {
+  const out = [1].map((val) => {
     x = 3; // ❌
     y = 4; // ❌
     let z = x; // ❌
     z = 5;
+    return val;
   });
 }
