@@ -218,14 +218,21 @@ const validCases: ValidTestCase[] = [
     `,
   },
   {
-    name: "can import impure modules (with option)",
+    name: "can import impure absolute modules (with option)",
     code: `
       import { foo } from "foo";
       import foo from "foo";
-      import { bar } from "./dir/bar";
-      import bar from "./dir/bar";
     `,
-    options: [{ pureModules: ["^foo$", "\\/dir\\/"] }],
+    options: [{ pureModules: ["^foo$"] }],
+  },
+
+  {
+    name: "can import impure relative modules (with option)",
+    code: `
+      import { foo } from "./dir/foo";
+      import foo from "./dir/foo";
+    `,
+    options: [{ pureModules: ["\\/dir\\/"] }],
   },
   {
     name: "can import relative modules in a common pure folder",

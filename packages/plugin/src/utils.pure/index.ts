@@ -9,6 +9,10 @@ function pathIsRelative(filePath: string): boolean {
   return filePath.startsWith("./") || filePath.startsWith("../");
 }
 
+function normalisePath(filePath: string): string {
+  return filePath.replace(/\\/g, "/");
+}
+
 export function getAbsolutePath({
   pathToResolve,
   fromAbsoluteAbsoluteFilePath: fromAbsoluteFilePath,
@@ -17,7 +21,8 @@ export function getAbsolutePath({
   fromAbsoluteAbsoluteFilePath: string;
 }): string {
   if (pathIsRelative(pathToResolve)) {
-    return path.resolve(path.dirname(fromAbsoluteFilePath), pathToResolve);
+    const absoluteFilePath = path.resolve(path.dirname(fromAbsoluteFilePath), pathToResolve);
+    return normalisePath(absoluteFilePath);
   }
   return pathToResolve;
 }

@@ -9,12 +9,7 @@ import { analyze as analyzeScope } from "@typescript-eslint/scope-manager";
 import type { TSESTree } from "@typescript-eslint/utils";
 import type { JSONSchema4 } from "@typescript-eslint/utils/dist/json-schema";
 import { createRule, getAbsolutePath, isBuiltInPureModuleImport } from "../utils.pure";
-import {
-  isAssignmentExpressionNode,
-  isIdentifierNode,
-  isMemberExpressionNode,
-  isThisExpressionNode,
-} from "../utils.pure/TSESTree-predicates";
+import { isAssignmentExpressionNode, isIdentifierNode, isMemberExpressionNode, isThisExpressionNode } from "../utils.pure/TSESTree";
 import {
   getScope,
   getResolvedVariable,

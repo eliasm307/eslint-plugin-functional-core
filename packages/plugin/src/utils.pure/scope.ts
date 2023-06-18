@@ -1,7 +1,7 @@
 import type { Scope, ScopeManager, Variable } from "@typescript-eslint/scope-manager";
 import type { TSESTree } from "@typescript-eslint/utils";
 import { ScopeType } from "@typescript-eslint/scope-manager";
-import { isLiteralNode, isTemplateLiteralNode } from "./TSESTree-predicates";
+import { isLiteralNode, isTemplateLiteralNode } from "./TSESTree";
 
 // todo update to use recursion
 /** Gets the immediate scope from a node */
