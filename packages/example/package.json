@@ -6,6 +6,6 @@
     "hoistingLimits": "workspaces"
   },
   "dependencies": {
-    "eslint-plugin-functional-core": "workspace:*"
+    "eslint-plugin-functional-core": "workspace:^"
   }
 }

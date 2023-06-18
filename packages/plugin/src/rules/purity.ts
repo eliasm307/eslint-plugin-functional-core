@@ -8,7 +8,7 @@ import type { ScopeManager } from "@typescript-eslint/scope-manager";
 import { analyze as analyzeScope } from "@typescript-eslint/scope-manager";
 import type { TSESTree } from "@typescript-eslint/utils";
 import type { JSONSchema4 } from "@typescript-eslint/utils/dist/json-schema";
-import { createRule } from "../utils.pure";
+import { createRule, getAbsolutePath, isBuiltInPureModuleImport } from "../utils.pure";
 import {
   isAssignmentExpressionNode,
   isIdentifierNode,
@@ -87,16 +87,17 @@ const rule = createRule<Options, MessageIds>({
   },
   defaultOptions: [{}],
   create(ruleContext) {
+    const filename = ruleContext.getFilename();
     const ruleConfig = ruleContext.options[0] || {};
     const purePathRegexes = ruleConfig.pureModules?.map((pattern) => new RegExp(pattern)) ?? [];
     purePathRegexes.push(/\.pure\b/);
     function isPureModulePath(path: string): boolean {
-      return purePathRegexes.some((regex) => regex.test(path));
+      path = getAbsolutePath({ pathToResolve: path, fromAbsoluteAbsoluteFilePath: filename });
+      return isBuiltInPureModuleImport(path) || purePathRegexes.some((regex) => regex.test(path));
     }
 
     // todo allow items in impure modules to be marked as pure
     // todo make pattern for pure module paths configurable
-    const filename = ruleContext.getFilename();
     debugger;
     const isPureFile = isPureModulePath(filename);
     if (!isPureFile) {

@@ -227,6 +227,15 @@ const validCases: ValidTestCase[] = [
     `,
     options: [{ pureModules: ["^foo$", "\\/dir\\/"] }],
   },
+  {
+    name: "can import relative modules in a common pure folder",
+    // the imports are also in the `common.pure` folder and so should be considered pure
+    code: `
+      import { bar } from "./bar";
+      import bar from "./bar";
+    `,
+    filename: "/common.pure/foo.js",
+  },
 ];
 
 const invalidCases: InvalidTestCase[] = [
@@ -573,11 +582,11 @@ const invalidCases: InvalidTestCase[] = [
   },
 ];
 
-function inPureFile<Case extends ValidTestCase | InvalidTestCase>(c: Case): Case {
-  return { ...c, filename: "file.pure.ts" };
+function inPureFileByDefault<Case extends ValidTestCase | InvalidTestCase>(c: Case): Case {
+  return { filename: "file.pure.ts", ...c };
 }
 
 ruleTester.run("purity", rule, {
-  valid: validCases.map(inPureFile),
-  invalid: invalidCases.map(inPureFile),
+  valid: validCases.map(inPureFileByDefault),
+  invalid: invalidCases.map(inPureFileByDefault),
 });
