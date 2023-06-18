@@ -243,7 +243,6 @@ const rule = createRule<Options, MessageIds>({
         // todo account for multiple return arguments as sequence expression
       },
       CallExpression(node) {
-        debugger;
         if (isIdentifierNode(node.callee)) {
           const currentScope = getScope({ node, scopeManager });
           const variable = getResolvedVariable({
