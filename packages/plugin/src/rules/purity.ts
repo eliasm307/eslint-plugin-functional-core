@@ -98,7 +98,6 @@ const rule = createRule<Options, MessageIds>({
 
     // todo allow items in impure modules to be marked as pure
     // todo make pattern for pure module paths configurable
-    debugger;
     const isPureFile = isPureModulePath(filename);
     if (!isPureFile) {
       return {}; // impure modules can do whatever they want
