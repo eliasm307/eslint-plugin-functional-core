@@ -1,8 +1,7 @@
-import { ESLintUtils } from "@typescript-eslint/utils";
-
 import rule from "../../src/rules/purity";
 
-import type { MessageIds, Options } from "../../src/rules/purity";
+import type { InvalidTestCase, ValidTestCase } from "../../src/utils.pure/tests";
+import { createRuleTester, testCaseInPureFileByDefault } from "../../src/utils.pure/tests";
 
 // todo account for computed properties
 // todo account for object spread
@@ -14,11 +13,6 @@ import type { MessageIds, Options } from "../../src/rules/purity";
 // todo add option to disallow let and var, everything has to be const
 // todo make strict config
 // todo add tests for builtin methods for Window, Array, Object, String, Number, Symbol, Math, Date, RegExp, process, console, Set, Map, WeakSet, WeakMap, JSON, Promise,
-
-type ValidTestCase = ESLintUtils.ValidTestCase<Options>;
-type InvalidTestCase = ESLintUtils.InvalidTestCase<MessageIds, Options>;
-
-const ruleTester = new ESLintUtils.RuleTester({ parser: "@typescript-eslint/parser" });
 
 const validCases: ValidTestCase[] = [
   {
@@ -37,17 +31,6 @@ const validCases: ValidTestCase[] = [
         const x = {};
         x.a = 1;
       }
-    `,
-  },
-  {
-    name: "can import from other pure modules",
-    code: `import Bar, { foo } from "./foo.pure";`,
-  },
-  {
-    name: "can import types from impure modules",
-    code: `
-      import type Bar from "./foo";
-      import type { foo } from "./foo";
     `,
   },
   {
@@ -216,32 +199,6 @@ const validCases: ValidTestCase[] = [
         return n * factorial(n - 1);
       }
     `,
-  },
-  {
-    name: "can import impure absolute modules (with option)",
-    code: `
-      import { foo } from "foo";
-      import foo from "foo";
-    `,
-    options: [{ pureModules: ["^foo$"] }],
-  },
-
-  {
-    name: "can import impure relative modules (with option)",
-    code: `
-      import { foo } from "./dir/foo";
-      import foo from "./dir/foo";
-    `,
-    options: [{ pureModules: ["\\/dir\\/"] }],
-  },
-  {
-    name: "can import relative modules in a common pure folder",
-    // the imports are also in the `common.pure` folder and so should be considered pure
-    code: `
-      import { bar } from "./bar";
-      import bar from "./bar";
-    `,
-    filename: "/common.pure/foo.js",
   },
 ];
 
@@ -537,32 +494,6 @@ const invalidCases: InvalidTestCase[] = [
     errors: [{ messageId: "cannotModifyThisContext" }],
   },
   {
-    name: "cannot import impure relative modules by named import (without option)",
-    code: `import { foo } from "./foo";`,
-    errors: [{ messageId: "cannotImportImpureModules" }],
-  },
-  {
-    name: "cannot import impure relative modules by default import (without option)",
-    code: `import foo from "./foo";`,
-    errors: [{ messageId: "cannotImportImpureModules" }],
-  },
-  {
-    name: "cannot import impure absolute modules by named import (without option)",
-    code: `import { foo } from "foo";`,
-    errors: [{ messageId: "cannotImportImpureModules" }],
-  },
-  {
-    name: "cannot import impure absolute modules by default import (without option)",
-    code: `import foo from "foo";`,
-    errors: [{ messageId: "cannotImportImpureModules" }],
-  },
-  {
-    name: "cannot import impure modules that partially match pattern",
-    code: `import foo from "./tests/foo";`,
-    options: [{ pureModules: ["\\/test\\/"] }],
-    errors: [{ messageId: "cannotImportImpureModules" }],
-  },
-  {
     name: "cannot call functions and ignore the return value",
     code: `mod2Pure.func1()`,
     errors: [{ messageId: "cannotIgnoreFunctionCallReturnValue" }],
@@ -589,11 +520,7 @@ const invalidCases: InvalidTestCase[] = [
   },
 ];
 
-function inPureFileByDefault<Case extends ValidTestCase | InvalidTestCase>(c: Case): Case {
-  return { filename: "file.pure.ts", ...c };
-}
-
-ruleTester.run("purity", rule, {
-  valid: validCases.map(inPureFileByDefault),
-  invalid: invalidCases.map(inPureFileByDefault),
+createRuleTester().run("purity", rule, {
+  valid: validCases.map(testCaseInPureFileByDefault),
+  invalid: invalidCases.map(testCaseInPureFileByDefault),
 });
