@@ -79,7 +79,7 @@ const rule = createRule<Options, MessageIds>({
             type: "boolean",
             description: "Whether to allow throwing errors in pure files/functions",
           },
-          allowIgnoringFunctionReturn: {
+          allowIgnoreFunctionCallResult: {
             type: "boolean",
           },
         } satisfies Record<keyof RuleConfig, JSONSchema4>,
