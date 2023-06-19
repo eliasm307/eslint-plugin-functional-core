@@ -20,7 +20,11 @@ const validCases: ValidTestCase[] = [
       import { foo } from "foo";
       import foo from "foo";
     `,
-    options: [{ pureModules: ["^foo$"] }],
+    settings: {
+      "functional-core": {
+        pureModules: ["^foo$"],
+      },
+    },
   },
   {
     name: "can import impure relative modules (with option)",
@@ -28,7 +32,11 @@ const validCases: ValidTestCase[] = [
       import { foo } from "./dir/foo";
       import foo from "./dir/foo";
     `,
-    options: [{ pureModules: ["\\/dir\\/"] }],
+    settings: {
+      "functional-core": {
+        pureModules: ["\\/dir\\/"],
+      },
+    },
   },
   {
     name: "can relative import pure modules in a common pure folder",
@@ -60,7 +68,11 @@ const invalidCases: InvalidTestCase[] = [
   {
     name: "cannot import impure modules that partially match pattern",
     code: `import foo from "./tests/foo";`,
-    options: [{ pureModules: ["\\/test\\/"] }],
+    settings: {
+      "functional-core": {
+        pureModules: ["\\/test\\/"],
+      },
+    },
     errors: [{ messageId: "cannotImportImpureModules" }],
   },
   {

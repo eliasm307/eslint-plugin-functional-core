@@ -8,7 +8,7 @@ import type { ScopeManager } from "@typescript-eslint/scope-manager";
 import { analyze as analyzeScope } from "@typescript-eslint/scope-manager";
 import type { TSESTree } from "@typescript-eslint/utils";
 import type { JSONSchema4 } from "@typescript-eslint/utils/dist/json-schema";
-import { createRule, getAbsolutePath, isBuiltInPureModuleImport } from "../utils.pure";
+import { createPurePathPredicate, createRule } from "../utils.pure";
 import { isAssignmentExpressionNode, isIdentifierNode, isMemberExpressionNode, isThisExpressionNode } from "../utils.pure/TSESTree";
 import {
   getScope,
@@ -19,9 +19,23 @@ import {
   isGlobalVariable,
 } from "../utils.pure/scope";
 
+declare module "@typescript-eslint/utils/dist/ts-eslint" {
+  interface SharedConfigurationSettings {
+    "functional-core"?: RuleSettings;
+  }
+}
+
 export type RuleConfig = {
   allowThrow?: boolean;
-  pureModules?: string[];
+  allowIgnoringFunctionReturn?: boolean;
+};
+
+export type RuleSettings = {
+  /** An array of RegExp patterns that match pure file paths, where this rule will be enabled.
+   * File paths including folders or files including '.pure' e.g. 'src/utils.pure/index.ts' or 'src/utils/index.pure.ts'
+   * are always considered pure.
+   */
+  pureModules: string[];
 };
 
 export type Options = [RuleConfig | undefined];
@@ -66,15 +80,8 @@ const rule = createRule<Options, MessageIds>({
             type: "boolean",
             description: "Whether to allow throwing errors in pure files/functions",
           },
-          // this option is shared so cant split the rule into smaller rules
-          pureModules: {
-            type: "array",
-            description:
-              "An array of RegExp patterns that match pure file paths, where this rule will be enabled. \nFile paths including folders or files including '.pure' e.g. 'src/utils.pure/index.ts' or 'src/utils/index.pure.ts' are always considered pure.",
-            items: {
-              type: "string",
-              minLength: 1,
-            },
+          allowIgnoringFunctionReturn: {
+            type: "boolean",
           },
         } satisfies Record<keyof RuleConfig, JSONSchema4>,
       },
@@ -83,15 +90,11 @@ const rule = createRule<Options, MessageIds>({
   defaultOptions: [{}],
   create(ruleContext) {
     const filename = ruleContext.getFilename();
-    const ruleConfig = ruleContext.options[0] || {};
-    const purePathRegexes = ruleConfig.pureModules?.map((pattern) => new RegExp(pattern)) ?? [];
-    purePathRegexes.push(/\.pure\b/);
-
-    // todo add tests around this, eg for builtin module handling
-    function isPureModulePath(path: string): boolean {
-      path = getAbsolutePath({ pathToResolve: path, fromAbsoluteAbsoluteFilePath: filename });
-      return isBuiltInPureModuleImport(path) || purePathRegexes.some((regex) => regex.test(path));
-    }
+    const globalSettings = ruleContext.settings["functional-core"];
+    const isPureModulePath = createPurePathPredicate({
+      filename,
+      customPureModulePatterns: globalSettings?.pureModules,
+    });
 
     // todo allow items in impure modules to be marked as pure
     // todo make pattern for pure module paths configurable
@@ -116,6 +119,7 @@ const rule = createRule<Options, MessageIds>({
 
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
     const sourceCode = ruleContext.getSourceCode();
+    const ruleConfig = ruleContext.options[0] || {};
     let scopeManager: ScopeManager;
     return {
       Program(node) {
