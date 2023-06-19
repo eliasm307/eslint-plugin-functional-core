@@ -200,6 +200,12 @@ const validCases: ValidTestCase[] = [
       }
     `,
   },
+  {
+    only: true,
+    name: "can call functions and ignore the return value (with option flag)",
+    code: `mod2Pure.func1()`,
+    options: [{ allowIgnoreFunctionCallResult: true }],
+  },
 ];
 
 const invalidCases: InvalidTestCase[] = [
@@ -386,7 +392,7 @@ const invalidCases: InvalidTestCase[] = [
         setTimeout(() => console.log('Impure!'), 1000);
       }
     `,
-    errors: [{ messageId: "cannotUseImpureFunctions" }, { messageId: "cannotIgnoreFunctionCallReturnValue" }],
+    errors: [{ messageId: "cannotUseImpureFunctions" }, { messageId: "cannotIgnoreFunctionCallResult" }],
   },
   {
     name: "cannot throw errors (without option flag)",
@@ -425,7 +431,7 @@ const invalidCases: InvalidTestCase[] = [
   //     console.log("foo");
   //   }
   //   `,
-  //   errors: [{ messageId: "cannotIgnoreFunctionCallReturnValue" }],
+  //   errors: [{ messageId: "cannotIgnoreFunctionCallResult" }],
   // },
   {
     name: "cannot modify instance properties by assignment",
@@ -496,7 +502,7 @@ const invalidCases: InvalidTestCase[] = [
   {
     name: "cannot call functions and ignore the return value",
     code: `mod2Pure.func1()`,
-    errors: [{ messageId: "cannotIgnoreFunctionCallReturnValue" }],
+    errors: [{ messageId: "cannotIgnoreFunctionCallResult" }],
   },
   {
     name: "cannot spread external arrays",

@@ -27,7 +27,7 @@ declare module "@typescript-eslint/utils/dist/ts-eslint" {
 
 export type RuleConfig = {
   allowThrow?: boolean;
-  allowIgnoringFunctionReturn?: boolean;
+  allowIgnoreFunctionCallResult?: boolean;
 };
 
 export type RuleSettings = {
@@ -49,7 +49,7 @@ export type MessageIds =
   | "cannotThrowErrors"
   | "cannotImportImpureModules"
   | "cannotModifyThisContext"
-  | "cannotIgnoreFunctionCallReturnValue";
+  | "cannotIgnoreFunctionCallResult";
 
 const rule = createRule<Options, MessageIds>({
   name: "purity",
@@ -69,8 +69,7 @@ const rule = createRule<Options, MessageIds>({
       cannotImportImpureModules: "Pure modules cannot import impure modules",
       cannotThrowErrors: "A pure file/function cannot throw errors",
       cannotModifyThisContext: "A pure file/function cannot modify 'this'",
-      cannotIgnoreFunctionCallReturnValue:
-        "A pure file/function cannot ignore function call return values, this is likely a side-effect",
+      cannotIgnoreFunctionCallResult: "A pure file/function cannot ignore function call return values, this is likely a side-effect",
     },
     schema: [
       {
@@ -278,7 +277,9 @@ const rule = createRule<Options, MessageIds>({
         }
       },
       "ExpressionStatement > CallExpression": function (node: TSESTree.CallExpression) {
-        reportIssue({ node, messageId: "cannotIgnoreFunctionCallReturnValue" });
+        if (!ruleConfig.allowIgnoreFunctionCallResult) {
+          reportIssue({ node, messageId: "cannotIgnoreFunctionCallResult" });
+        }
       },
     };
   },
