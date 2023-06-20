@@ -95,3 +95,9 @@ export function globalUsageIsAllowed({
 
   return false; // default
 }
+
+const IMPURE_ARRAY_METHOD_NAMES = new Set(["copyWithin", "fill", "pop", "push", "reverse", "shift", "sort", "splice", "unshift"]);
+
+export function isKnownImpureBuiltInMethodName(name: string) {
+  return IMPURE_ARRAY_METHOD_NAMES.has(name);
+}

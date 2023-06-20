@@ -6,9 +6,9 @@
 
 import type { ScopeManager } from "@typescript-eslint/scope-manager";
 import { analyze as analyzeScope } from "@typescript-eslint/scope-manager";
-import type { TSESTree } from "@typescript-eslint/utils";
+import { ESLintUtils, type TSESTree } from "@typescript-eslint/utils";
 import type { JSONSchema4 } from "@typescript-eslint/utils/dist/json-schema";
-import { createPurePathPredicate, createRule, globalUsageIsAllowed } from "../utils.pure";
+import { createPurePathPredicate, createRule, globalUsageIsAllowed, isKnownImpureBuiltInMethodName } from "../utils.pure";
 import { isAssignmentExpressionNode, isIdentifierNode, isMemberExpressionNode, isThisExpressionNode } from "../utils.pure/TSESTree";
 import {
   getImmediateScope,
@@ -26,6 +26,7 @@ export type RuleConfig = {
   allowThrow?: boolean;
   allowIgnoreFunctionCallResult?: boolean;
   allowGlobals?: AllowedGlobalsValue;
+  useTypes?: boolean;
 };
 
 export type Options = [RuleConfig | undefined];
@@ -39,7 +40,8 @@ export type MessageIds =
   | "cannotThrowErrors"
   | "cannotImportImpureModules"
   | "cannotModifyThisContext"
-  | "cannotIgnoreFunctionCallResult";
+  | "cannotIgnoreFunctionCallResult"
+  | "cannotUseImpureMethods";
 
 const rule = createRule<Options, MessageIds>({
   name: "purity",
@@ -60,6 +62,7 @@ const rule = createRule<Options, MessageIds>({
       cannotThrowErrors: "A pure file/function cannot throw errors",
       cannotModifyThisContext: "A pure file/function cannot modify 'this'",
       cannotIgnoreFunctionCallResult: "A pure file/function cannot ignore function call return values, this is likely a side-effect",
+      cannotUseImpureMethods: "A pure file/function cannot use impure methods",
     },
     schema: [
       {
@@ -83,6 +86,10 @@ const rule = createRule<Options, MessageIds>({
                 description: "A boolean to allow/disallow all global usages",
               },
             ],
+          },
+          useTypes: {
+            type: "boolean",
+            description: "Whether to use types when determining purity",
           },
         } satisfies Record<keyof RuleConfig, JSONSchema4>,
       },
@@ -306,6 +313,22 @@ const rule = createRule<Options, MessageIds>({
             });
           }
         }
+      },
+      "CallExpression > MemberExpression.callee": function (node: TSESTree.MemberExpression) {
+        if (!ruleConfig.useTypes) {
+          return; //
+        }
+        const memberExpressionNodes = getMemberExpressionChainNodes(node);
+        const methodNameNode = memberExpressionNodes.at(-1);
+        if (!isIdentifierNode(methodNameNode)) {
+          return;
+        }
+        if (!isKnownImpureBuiltInMethodName(methodNameNode.name)) {
+          return;
+        }
+
+        const parserServices = ESLintUtils.getParserServices(ruleContext);
+        const typeChecker = parserServices.program.getTypeChecker();
       },
       // top member expressions or standalone identifiers (defining these cases explicitly to avoid false positives)
       ":not(MemberExpression) > MemberExpression, Property > Identifier.value": function (

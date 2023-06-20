@@ -148,7 +148,7 @@ const invalidCases: InvalidTestCase[] = [
   },
 ];
 
-createRuleTester().run("purity > cannotImportImpureModules", rule, {
+createRuleTester().run("purity > allowGlobals", rule, {
   valid: validCases.map(testCaseInPureFileByDefault),
   invalid: invalidCases.map(testCaseInPureFileByDefault),
 });
