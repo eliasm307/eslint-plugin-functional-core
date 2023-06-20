@@ -11,7 +11,7 @@ import type { JSONSchema4 } from "@typescript-eslint/utils/dist/json-schema";
 import { createPurePathPredicate, createRule, globalUsageIsAllowed } from "../utils.pure";
 import { isAssignmentExpressionNode, isIdentifierNode, isMemberExpressionNode, isThisExpressionNode } from "../utils.pure/TSESTree";
 import {
-  getImmediateScope,
+  getScope,
   getResolvedVariable,
   variableIsDefinedInScope as variableIsDefinedInFunctionScope,
   variableIsParameter,
@@ -145,7 +145,7 @@ const rule = createRule<Options, MessageIds>({
         throw new Error(`Unexpected node type: ${node.type}\n\n${sourceCode.getText(node)}`);
       }
 
-      const currentScope = getImmediateScope({ node, scopeManager });
+      const currentScope = getScope({ node, scopeManager });
       const rootIdentifier = accessSegmentNodes[0];
       return {
         accessSegments: accessSegmentNodes.map((segmentNode) => {
@@ -180,7 +180,7 @@ const rule = createRule<Options, MessageIds>({
         }
       },
       ThisExpression(node) {
-        const currentScope = getImmediateScope({ node, scopeManager });
+        const currentScope = getScope({ node, scopeManager });
         if (thisExpressionIsGlobalWhenUsedInScope(currentScope)) {
           reportIssue({ node, messageId: "cannotReferenceGlobalContext" });
         }
@@ -190,7 +190,7 @@ const rule = createRule<Options, MessageIds>({
 
         // is variable reassignment?
         if (isIdentifierNode(targetNode)) {
-          const currentScope = getImmediateScope({ node, scopeManager });
+          const currentScope = getScope({ node, scopeManager });
           const assignmentTargetIdentifier = targetNode;
           const variable = getResolvedVariable({
             node: assignmentTargetIdentifier,
@@ -216,7 +216,7 @@ const rule = createRule<Options, MessageIds>({
           }
 
           if (isIdentifierNode(rootExpressionObject)) {
-            const currentScope = getImmediateScope({ node, scopeManager });
+            const currentScope = getScope({ node, scopeManager });
             const variable = getResolvedVariable({
               node: rootExpressionObject,
               scope: currentScope,
@@ -262,7 +262,7 @@ const rule = createRule<Options, MessageIds>({
         }
 
         if (isIdentifierNode(valueNode)) {
-          const currentScope = getImmediateScope({ node, scopeManager });
+          const currentScope = getScope({ node, scopeManager });
           const variable = getResolvedVariable({ node: valueNode, scope: currentScope });
           if (variableIsDefinedInFunctionScope(variable, currentScope)) {
             return; // using any variable from the current scope is fine, including parameters
@@ -280,7 +280,7 @@ const rule = createRule<Options, MessageIds>({
       },
       CallExpression(node) {
         if (isIdentifierNode(node.callee)) {
-          const currentScope = getImmediateScope({ node, scopeManager });
+          const currentScope = getScope({ node, scopeManager });
           const variable = getResolvedVariable({ node: node.callee, scope: currentScope });
           if (!isGlobalVariable(variable)) {
             // using function from non-global scope is fine assuming it's pure,
