@@ -11,7 +11,7 @@ import type { JSONSchema4 } from "@typescript-eslint/utils/dist/json-schema";
 import { createPurePathPredicate, createRule, globalUsageIsAllowed } from "../utils.pure";
 import { isAssignmentExpressionNode, isIdentifierNode, isMemberExpressionNode, isThisExpressionNode } from "../utils.pure/TSESTree";
 import {
-  getScope,
+  getImmediateScope,
   getResolvedVariable,
   variableIsDefinedInScope as variableIsDefinedInFunctionScope,
   variableIsParameter,
@@ -145,7 +145,7 @@ const rule = createRule<Options, MessageIds>({
         throw new Error(`Unexpected node type: ${node.type}\n\n${sourceCode.getText(node)}`);
       }
 
-      const currentScope = getScope({ node, scopeManager });
+      const currentScope = getImmediateScope({ node, scopeManager });
       const rootIdentifier = accessSegmentNodes[0];
       return {
         accessSegments: accessSegmentNodes.map((segmentNode) => {
@@ -180,9 +180,8 @@ const rule = createRule<Options, MessageIds>({
         }
       },
       ThisExpression(node) {
-        const currentScope = getScope({ node, scopeManager });
+        const currentScope = getImmediateScope({ node, scopeManager });
         if (thisExpressionIsGlobalWhenUsedInScope(currentScope)) {
-          debugger;
           reportIssue({ node, messageId: "cannotReferenceGlobalContext" });
         }
       },
@@ -191,7 +190,7 @@ const rule = createRule<Options, MessageIds>({
 
         // is variable reassignment?
         if (isIdentifierNode(targetNode)) {
-          const currentScope = getScope({ node, scopeManager });
+          const currentScope = getImmediateScope({ node, scopeManager });
           const assignmentTargetIdentifier = targetNode;
           const variable = getResolvedVariable({
             node: assignmentTargetIdentifier,
@@ -217,7 +216,7 @@ const rule = createRule<Options, MessageIds>({
           }
 
           if (isIdentifierNode(rootExpressionObject)) {
-            const currentScope = getScope({ node, scopeManager });
+            const currentScope = getImmediateScope({ node, scopeManager });
             const variable = getResolvedVariable({
               node: rootExpressionObject,
               scope: currentScope,
@@ -263,7 +262,7 @@ const rule = createRule<Options, MessageIds>({
         }
 
         if (isIdentifierNode(valueNode)) {
-          const currentScope = getScope({ node, scopeManager });
+          const currentScope = getImmediateScope({ node, scopeManager });
           const variable = getResolvedVariable({ node: valueNode, scope: currentScope });
           if (variableIsDefinedInFunctionScope(variable, currentScope)) {
             return; // using any variable from the current scope is fine, including parameters
@@ -281,11 +280,8 @@ const rule = createRule<Options, MessageIds>({
       },
       CallExpression(node) {
         if (isIdentifierNode(node.callee)) {
-          const currentScope = getScope({ node, scopeManager });
-          const variable = getResolvedVariable({
-            node: node.callee,
-            scope: currentScope,
-          });
+          const currentScope = getImmediateScope({ node, scopeManager });
+          const variable = getResolvedVariable({ node: node.callee, scope: currentScope });
           if (!isGlobalVariable(variable)) {
             // using function from non-global scope is fine assuming it's pure,
             // if its imported this is a different error
@@ -300,21 +296,20 @@ const rule = createRule<Options, MessageIds>({
           }
         }
       },
-      // matches standalone (ie not as part of an expression or function identifier) global identifiers or top member expressions
-      ":not(MemberExpression) > MemberExpression, :not(:function, :declaration, MemberExpression, MethodDefinition, Property.key, VariableDeclarator) > Identifier":
-        function (node: TSESTree.MemberExpression | TSESTree.Identifier) {
-          debugger;
-          const usage = getUsageData(node);
-          if (!usage) {
-            return;
-          }
-          const { isGlobalUsage, accessSegments } = usage;
-          if (!isGlobalUsage || globalUsageIsAllowed({ accessSegments, allowedGlobals: ruleConfig.allowGlobals })) {
-            return;
-          }
-          debugger;
-          reportIssue({ node, messageId: "cannotReferenceGlobalContext" });
-        },
+      // top member expressions or standalone identifiers (defining these cases explicitly to avoid false positives)
+      ":not(MemberExpression) > MemberExpression, Property > Identifier.value": function (
+        node: TSESTree.MemberExpression | TSESTree.Identifier,
+      ) {
+        const usage = getUsageData(node);
+        if (!usage) {
+          return;
+        }
+        const { isGlobalUsage, accessSegments } = usage;
+        if (!isGlobalUsage || globalUsageIsAllowed({ accessSegments, allowedGlobals: ruleConfig.allowGlobals })) {
+          return;
+        }
+        reportIssue({ node, messageId: "cannotReferenceGlobalContext" });
+      },
       ThrowStatement(node) {
         if (!ruleConfig.allowThrow) {
           reportIssue({
@@ -333,7 +328,7 @@ const rule = createRule<Options, MessageIds>({
             return;
           }
           const { isGlobalUsage, accessSegments } = usage;
-          if (!isGlobalUsage || globalUsageIsAllowed({ accessSegments, allowedGlobals: ruleConfig.allowGlobals })) {
+          if (isGlobalUsage && globalUsageIsAllowed({ accessSegments, allowedGlobals: ruleConfig.allowGlobals })) {
             return;
           }
         }

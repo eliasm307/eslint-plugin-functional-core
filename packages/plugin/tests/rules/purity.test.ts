@@ -45,12 +45,13 @@ const validCases: ValidTestCase[] = [
     options: [{ allowThrow: true }],
   },
   {
-    name: "can use pure Math methods",
+    name: "can use pure Math methods (with option)",
     code: `
       function method() {
         return Math.sqrt(4);
       }
-  `,
+    `,
+    options: [{ allowGlobals: { Math: { sqrt: true } } }],
   },
   {
     name: "functions can explicit return arguments",
@@ -221,7 +222,7 @@ const invalidCases: InvalidTestCase[] = [
         const x = this;
       }
     `,
-    errors: [{ messageId: "cannotUseExternalMutableVariables" }],
+    errors: [{ messageId: "cannotReferenceGlobalContext" }],
   },
   {
     name: "cannot modify global variables",
@@ -460,7 +461,6 @@ const invalidCases: InvalidTestCase[] = [
     errors: [{ messageId: "cannotUseExternalMutableVariables" }],
   },
   {
-    only: true,
     name: "cannot spread external objects",
     code: `
       const vals = {a: 1, b: 2, c: 3};
