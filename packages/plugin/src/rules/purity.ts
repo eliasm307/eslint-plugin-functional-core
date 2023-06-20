@@ -349,15 +349,6 @@ const rule = createRule<Options, MessageIds>({
   },
 });
 
-// const PURE_OBJECT_FUNCTION_NAMES = new Set([
-//   "freeze",
-//   "seal",
-//   "preventExtensions",
-//   "isFrozen",
-//   "isSealed",
-//   "isExtensible",
-// ] satisfies (keyof ObjectConstructor)[]);
-
 const PURE_GLOBAL_FUNCTION_NAMES = new Set([
   "decodeURI",
   "decodeURIComponent",

@@ -95,3 +95,12 @@ export function globalUsageIsAllowed({
 
   return false; // default
 }
+
+// const PURE_OBJECT_FUNCTION_NAMES = new Set([
+//   "freeze",
+//   "seal",
+//   "preventExtensions",
+//   "isFrozen",
+//   "isSealed",
+//   "isExtensible",
+// ] satisfies (keyof ObjectConstructor)[]);
