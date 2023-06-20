@@ -73,8 +73,16 @@ const rule = createRule<Options, MessageIds>({
             type: "boolean",
           },
           allowGlobals: {
-            type: "object",
-            description: "A map of global variables that are allowed to be used in pure files/functions",
+            oneOf: [
+              {
+                type: "object",
+                description: "A map of global variables that are allowed to be used in pure files/functions",
+              },
+              {
+                type: "boolean",
+                description: "A boolean to allow/disallow all global usages",
+              },
+            ],
           },
         } satisfies Record<keyof RuleConfig, JSONSchema4>,
       },
@@ -133,7 +141,7 @@ const rule = createRule<Options, MessageIds>({
             const chainNodeText = sourceCode.getText(chainNode);
             const memberExpressionText = sourceCode.getText(node);
             console.warn(`Unexpected node type: ${chainNode.type} (${chainNodeText}) in MemberExpression "${memberExpressionText}")`);
-            return; // unupported member expression format so we can't determine the usage
+            return; // unsupported member expression format so we can't determine the usage
           }
           accessSegmentNodes.push(chainNode);
         }
@@ -182,7 +190,10 @@ const rule = createRule<Options, MessageIds>({
       ThisExpression(node) {
         const currentScope = getImmediateScope({ node, scopeManager });
         if (thisExpressionIsGlobalWhenUsedInScope(currentScope)) {
-          reportIssue({ node, messageId: "cannotReferenceGlobalContext" });
+          const directGlobalUsageAllowed = ruleConfig.allowGlobals === true;
+          if (!directGlobalUsageAllowed) {
+            reportIssue({ node, messageId: "cannotReferenceGlobalContext" });
+          }
         }
       },
       "AssignmentExpression, UpdateExpression": function (node: TSESTree.AssignmentExpression | TSESTree.UpdateExpression) {

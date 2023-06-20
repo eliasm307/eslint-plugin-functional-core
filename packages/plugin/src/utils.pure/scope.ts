@@ -9,9 +9,9 @@ const nodeToImmediateScopeMap = new WeakMap<TSESTree.Node, Scope>();
 export function getImmediateScope({ node, scopeManager }: { node: TSESTree.Node | undefined; scopeManager: ScopeManager }): Scope {
   const visitedNodes = new Set<TSESTree.Node>();
   while (node) {
-    const scope = nodeToImmediateScopeMap.get(node) || scopeManager.acquire(node);
     // eslint-disable-next-line functional-core/purity -- side effect of caching
     visitedNodes.add(node);
+    const scope = nodeToImmediateScopeMap.get(node) || scopeManager.acquire(node);
     if (scope) {
       // eslint-disable-next-line functional-core/purity -- side effect of caching
       visitedNodes.forEach((visitedNode) => {

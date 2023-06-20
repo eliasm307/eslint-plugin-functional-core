@@ -79,6 +79,16 @@ const validCases: ValidTestCase[] = [
     name: "allows global keywords to be used as identifiers in other expressions",
     code: `const foo = {}.global.globalThis.window.random()`,
   },
+  {
+    name: "allows directly using global reference with option",
+    code: `
+      this;
+      globalThis;
+      global;
+      window;
+    `,
+    options: [{ allowGlobals: true }],
+  },
 ];
 
 const invalidCases: InvalidTestCase[] = [
