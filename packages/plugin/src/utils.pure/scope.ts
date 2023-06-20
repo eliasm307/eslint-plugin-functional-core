@@ -6,7 +6,7 @@ import { isArrowFunctionExpressionNode, isLiteralNode, isTemplateLiteralNode, is
 const nodeToImmediateScopeMap = new WeakMap<TSESTree.Node, Scope>();
 
 /** Gets the immediate scope from a node */
-export function getScope({ node, scopeManager }: { node: TSESTree.Node | undefined; scopeManager: ScopeManager }): Scope {
+export function getImmediateScope({ node, scopeManager }: { node: TSESTree.Node | undefined; scopeManager: ScopeManager }): Scope {
   const visitedNodes = new Set<TSESTree.Node>();
   while (node) {
     const scope = nodeToImmediateScopeMap.get(node) || scopeManager.acquire(node);
