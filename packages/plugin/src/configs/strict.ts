@@ -1,4 +1,5 @@
 import type { RuleConfig } from "../rules/purity";
+import type { SharedConfigurationSettings } from "../utils.pure/types";
 
 export default {
   extends: [],
@@ -7,8 +8,12 @@ export default {
       "error",
       {
         allowThrow: false,
-        pureModules: [".*"],
+        allowGlobals: false,
+        allowIgnoreFunctionCallResult: false,
       } satisfies Required<RuleConfig>,
     ],
   },
+  settings: {
+    pureModules: [".*"], // all files are pure by default
+  } satisfies SharedConfigurationSettings,
 };
