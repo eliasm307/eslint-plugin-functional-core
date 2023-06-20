@@ -1,5 +1,6 @@
 import { ESLintUtils } from "@typescript-eslint/utils";
 import path from "path";
+import type { AllowedGlobalsValue } from "./types";
 
 export const createRule = ESLintUtils.RuleCreator(
   (name) => `https://github.com/eliasm307/eslint-plugin-functional-core/blob/main/docs/rules/${name}.md`,
@@ -49,4 +50,48 @@ export function createPurePathPredicate({
     inputPath = getNormalisedAbsolutePath({ pathToResolve: inputPath, fromAbsoluteAbsoluteFilePath: filename });
     return isBuiltInPureModuleImport(inputPath) || purePathRegexes.some((regex) => regex.test(inputPath));
   };
+}
+
+function isGlobalAlias(alias: string): boolean {
+  return ["globalThis", "window", "global", "this"].includes(alias);
+}
+
+export function globalUsageIsAllowed({
+  accessSegments,
+  allowedGlobals,
+}: {
+  accessSegments: string[];
+  allowedGlobals: AllowedGlobalsValue | undefined;
+}): boolean {
+  if (isGlobalAlias(accessSegments[0])) {
+    // ignore global aliases
+    accessSegments = accessSegments.slice(1);
+  }
+
+  // check if global scope has general value
+  if (allowedGlobals === undefined) {
+    return false; // default
+  }
+  if (typeof allowedGlobals === "boolean") {
+    return allowedGlobals;
+  }
+  if (typeof allowedGlobals !== "object" || allowedGlobals === null) {
+    return false; // default, cant get global scopes
+  }
+
+  // check defined scopes
+  for (const segment of accessSegments) {
+    allowedGlobals = allowedGlobals[segment];
+    if (allowedGlobals === undefined) {
+      return false; // default
+    }
+    if (typeof allowedGlobals === "boolean") {
+      return allowedGlobals;
+    }
+    if (typeof allowedGlobals !== "object" || allowedGlobals === null) {
+      break; // cant get the next scope anyway
+    }
+  }
+
+  return false; // default
 }

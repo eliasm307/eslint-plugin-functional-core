@@ -9,6 +9,9 @@ export const isFunctionNode = ASTUtils.isFunction;
 export const isReturnStatementNode = (node: TSESTree.Node | null | undefined): node is TSESTree.ReturnStatement =>
   node?.type === AST_NODE_TYPES.ReturnStatement;
 
+export const isArrowFunctionExpressionNode = (node: TSESTree.Node | null | undefined): node is TSESTree.ArrowFunctionExpression =>
+  node?.type === AST_NODE_TYPES.ArrowFunctionExpression;
+
 export const isVariableDeclaratorNode = (node: TSESTree.Node | null | undefined): node is TSESTree.VariableDeclarator =>
   node?.type === AST_NODE_TYPES.VariableDeclarator;
 

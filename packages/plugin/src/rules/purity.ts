@@ -8,7 +8,7 @@ import type { ScopeManager } from "@typescript-eslint/scope-manager";
 import { analyze as analyzeScope } from "@typescript-eslint/scope-manager";
 import type { TSESTree } from "@typescript-eslint/utils";
 import type { JSONSchema4 } from "@typescript-eslint/utils/dist/json-schema";
-import { createPurePathPredicate, createRule } from "../utils.pure";
+import { createPurePathPredicate, createRule, globalUsageIsAllowed } from "../utils.pure";
 import { isAssignmentExpressionNode, isIdentifierNode, isMemberExpressionNode, isThisExpressionNode } from "../utils.pure/TSESTree";
 import {
   getScope,
@@ -17,25 +17,15 @@ import {
   variableIsParameter,
   variableIsImmutable,
   isGlobalVariable,
+  isGlobalScopeUsage,
+  thisExpressionIsGlobalWhenUsedInScope,
 } from "../utils.pure/scope";
-
-declare module "@typescript-eslint/utils/dist/ts-eslint" {
-  interface SharedConfigurationSettings {
-    "functional-core"?: RuleSettings;
-  }
-}
+import type { AllowedGlobalsValue } from "../utils.pure/types";
 
 export type RuleConfig = {
   allowThrow?: boolean;
   allowIgnoreFunctionCallResult?: boolean;
-};
-
-export type RuleSettings = {
-  /** An array of RegExp patterns that match pure file paths, where this rule will be enabled.
-   * File paths including folders or files including '.pure' e.g. 'src/utils.pure/index.ts' or 'src/utils/index.pure.ts'
-   * are always considered pure.
-   */
-  pureModules: string[];
+  allowGlobals?: AllowedGlobalsValue;
 };
 
 export type Options = [RuleConfig | undefined];
@@ -82,6 +72,10 @@ const rule = createRule<Options, MessageIds>({
           allowIgnoreFunctionCallResult: {
             type: "boolean",
           },
+          allowGlobals: {
+            type: "object",
+            description: "A map of global variables that are allowed to be used in pure files/functions",
+          },
         } satisfies Record<keyof RuleConfig, JSONSchema4>,
       },
     ],
@@ -120,6 +114,47 @@ const rule = createRule<Options, MessageIds>({
     const sourceCode = ruleContext.getSourceCode();
     const ruleConfig = ruleContext.options[0] || {};
     let scopeManager: ScopeManager;
+
+    function getUsageData(node: TSESTree.MemberExpression | TSESTree.Identifier | TSESTree.ThisExpression): {
+      accessSegments: string[];
+      isGlobalUsage: boolean;
+    } | void {
+      let accessSegmentNodes: (TSESTree.Identifier | TSESTree.ThisExpression)[] = [];
+      if (isIdentifierNode(node) || isThisExpressionNode(node)) {
+        accessSegmentNodes = [node];
+      } else if (isMemberExpressionNode(node)) {
+        // make sure we are using the top level member expression
+        while (isMemberExpressionNode(node.parent)) {
+          node = node.parent;
+        }
+        accessSegmentNodes = [];
+        for (const chainNode of getMemberExpressionChainNodes(node)) {
+          if (!isIdentifierNode(chainNode) && !isThisExpressionNode(chainNode)) {
+            const chainNodeText = sourceCode.getText(chainNode);
+            const memberExpressionText = sourceCode.getText(node);
+            console.warn(`Unexpected node type: ${chainNode.type} (${chainNodeText}) in MemberExpression "${memberExpressionText}")`);
+            return; // unupported member expression format so we can't determine the usage
+          }
+          accessSegmentNodes.push(chainNode);
+        }
+      } else {
+        throw new Error(`Unexpected node type: ${(node as TSESTree.Node).type}\n\n${sourceCode.getText(node)}`);
+      }
+
+      if (accessSegmentNodes.length === 0) {
+        throw new Error(`Unexpected node type: ${node.type}\n\n${sourceCode.getText(node)}`);
+      }
+
+      const currentScope = getScope({ node, scopeManager });
+      const rootIdentifier = accessSegmentNodes[0];
+      return {
+        accessSegments: accessSegmentNodes.map((segmentNode) => {
+          return isThisExpressionNode(segmentNode) ? "this" : segmentNode.name;
+        }),
+        isGlobalUsage: isGlobalScopeUsage({ node: rootIdentifier, scope: currentScope }),
+      };
+    }
+
     return {
       Program(node) {
         scopeManager = analyzeScope(node, {
@@ -144,13 +179,10 @@ const rule = createRule<Options, MessageIds>({
           });
         }
       },
-      "Identifier[name=globalThis], Identifier[name=window]": function (node) {
-        reportIssue({ node, messageId: "cannotReferenceGlobalContext" });
-      },
       ThisExpression(node) {
         const currentScope = getScope({ node, scopeManager });
-        const isGlobalScope = currentScope.type === "global";
-        if (isGlobalScope) {
+        if (thisExpressionIsGlobalWhenUsedInScope(currentScope)) {
+          debugger;
           reportIssue({ node, messageId: "cannotReferenceGlobalContext" });
         }
       },
@@ -268,6 +300,21 @@ const rule = createRule<Options, MessageIds>({
           }
         }
       },
+      // matches standalone (ie not as part of an expression or function identifier) global identifiers or top member expressions
+      ":not(MemberExpression) > MemberExpression, :not(:function, :declaration, MemberExpression, MethodDefinition, Property.key, VariableDeclarator) > Identifier":
+        function (node: TSESTree.MemberExpression | TSESTree.Identifier) {
+          debugger;
+          const usage = getUsageData(node);
+          if (!usage) {
+            return;
+          }
+          const { isGlobalUsage, accessSegments } = usage;
+          if (!isGlobalUsage || globalUsageIsAllowed({ accessSegments, allowedGlobals: ruleConfig.allowGlobals })) {
+            return;
+          }
+          debugger;
+          reportIssue({ node, messageId: "cannotReferenceGlobalContext" });
+        },
       ThrowStatement(node) {
         if (!ruleConfig.allowThrow) {
           reportIssue({
@@ -277,9 +324,20 @@ const rule = createRule<Options, MessageIds>({
         }
       },
       "ExpressionStatement > CallExpression": function (node: TSESTree.CallExpression) {
-        if (!ruleConfig.allowIgnoreFunctionCallResult) {
-          reportIssue({ node, messageId: "cannotIgnoreFunctionCallResult" });
+        if (ruleConfig.allowIgnoreFunctionCallResult) {
+          return;
         }
+        if (isIdentifierNode(node.callee) || isMemberExpressionNode(node.callee)) {
+          const usage = getUsageData(node.callee);
+          if (!usage) {
+            return;
+          }
+          const { isGlobalUsage, accessSegments } = usage;
+          if (!isGlobalUsage || globalUsageIsAllowed({ accessSegments, allowedGlobals: ruleConfig.allowGlobals })) {
+            return;
+          }
+        }
+        reportIssue({ node, messageId: "cannotIgnoreFunctionCallResult" });
       },
     };
   },
@@ -310,11 +368,11 @@ function isPureGlobalFunctionName(name: string): boolean {
   return PURE_GLOBAL_FUNCTION_NAMES.has(name);
 }
 
-function getMemberExpressionChainNodes(node: TSESTree.MemberExpression): TSESTree.Node[] {
-  if (!isMemberExpressionNode(node.object)) {
-    return [node.object];
+function getMemberExpressionChainNodes(node: TSESTree.Node): TSESTree.Node[] {
+  if (isMemberExpressionNode(node)) {
+    return [...getMemberExpressionChainNodes(node.object), node.property];
   }
-  return [...getMemberExpressionChainNodes(node.object), node.property];
+  return [node];
 }
 
 export default rule;

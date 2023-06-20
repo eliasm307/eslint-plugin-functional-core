@@ -1,7 +1,7 @@
 import type { Scope, ScopeManager, Variable } from "@typescript-eslint/scope-manager";
 import type { TSESTree } from "@typescript-eslint/utils";
 import { ScopeType } from "@typescript-eslint/scope-manager";
-import { isLiteralNode, isTemplateLiteralNode } from "./TSESTree";
+import { isArrowFunctionExpressionNode, isLiteralNode, isTemplateLiteralNode, isThisExpressionNode } from "./TSESTree";
 
 const nodeToImmediateScopeMap = new WeakMap<TSESTree.Node, Scope>();
 
@@ -72,4 +72,28 @@ export function variableIsImmutable(variable: Variable | undefined): boolean {
 
 export function isGlobalVariable(variable: Variable | undefined): boolean {
   return !variable; // globals wont be resolved to Scope variables
+}
+
+function isValidThisScope(scope: Scope): boolean {
+  return scope.type === ScopeType.function && !isArrowFunctionExpressionNode(scope.block);
+}
+
+function getThisScopeFrom({ fromScope }: { fromScope: Scope }): Scope | null {
+  let scope: Scope | null = fromScope;
+  while (scope && !isValidThisScope(scope)) {
+    scope = scope.upper;
+  }
+  return scope;
+}
+
+export function thisExpressionIsGlobalWhenUsedInScope(scope: Scope): boolean {
+  const thisScope = getThisScopeFrom({ fromScope: scope });
+  return !thisScope || thisScope.type === ScopeType.global;
+}
+
+export function isGlobalScopeUsage({ node, scope }: { node: TSESTree.Identifier | TSESTree.ThisExpression; scope: Scope }): boolean {
+  if (isThisExpressionNode(node)) {
+    return thisExpressionIsGlobalWhenUsedInScope(scope);
+  }
+  return isGlobalVariable(getResolvedVariable({ node, scope }));
 }

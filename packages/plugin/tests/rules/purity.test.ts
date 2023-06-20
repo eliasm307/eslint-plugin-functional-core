@@ -34,23 +34,6 @@ const validCases: ValidTestCase[] = [
     `,
   },
   {
-    name: "can use pure global functions",
-    code: `
-      function func() {
-        const foo = structuredClone({a: 1});
-      };
-    `,
-  },
-  // todo
-  // {
-  //   name: "can use pure global functions from window",
-  //   code: `
-  //     function func() {
-  //       const foo = window.structuredClone({a: 1});
-  //     };
-  //   `,
-  // },
-  {
     name: "can throw errors (with option flag)",
     code: `
       function func(shouldBeThrown) {
@@ -61,39 +44,14 @@ const validCases: ValidTestCase[] = [
   `,
     options: [{ allowThrow: true }],
   },
-  // todo
-  // {
-  //   name: "can use console (with option flag)",
-  //   code: `
-  //     function func() {
-  //       console.log("foo");
-  //       console.warn("foo");
-  //       console.error("foo");
-  //       console.debug("foo");
-  //       console.verbose("foo");
-  //       console.table([]);
-  //       console.dir([]);
-  //     }
-  //   `,
-  //   // options: [{ allowConsole: true }],
-  // },
   {
     name: "can use pure Math methods",
     code: `
-      function impure() {
+      function method() {
         return Math.sqrt(4);
       }
   `,
   },
-  // todo
-  // {
-  //   name: "can use pure window.Math methods",
-  //   code: `
-  //     function impure() {
-  //       return window.Math.sqrt(4)
-  //     }
-  // `,
-  // },
   {
     name: "functions can explicit return arguments",
     code: `
@@ -201,9 +159,11 @@ const validCases: ValidTestCase[] = [
     `,
   },
   {
-    only: true,
     name: "can call functions and ignore the return value (with option flag)",
-    code: `mod2Pure.func1()`,
+    code: `
+      import mod2Pure from './mod2.pure';
+      mod2Pure.func1()
+    `,
     options: [{ allowIgnoreFunctionCallResult: true }],
   },
 ];
@@ -250,6 +210,15 @@ const invalidCases: InvalidTestCase[] = [
     code: `
       function foo() {
         const x = window;
+      }
+    `,
+    errors: [{ messageId: "cannotUseExternalMutableVariables" }],
+  },
+  {
+    name: "cannot use global this",
+    code: `
+      const foo = () => {
+        const x = this;
       }
     `,
     errors: [{ messageId: "cannotUseExternalMutableVariables" }],
@@ -388,8 +357,8 @@ const invalidCases: InvalidTestCase[] = [
   {
     name: "cannot use impure global functions",
     code: `
-      function impure() {
-        setTimeout(() => console.log('Impure!'), 1000);
+      function method() {
+        setTimeout(() => null, 1000);
       }
     `,
     errors: [{ messageId: "cannotUseImpureFunctions" }, { messageId: "cannotIgnoreFunctionCallResult" }],
@@ -403,40 +372,13 @@ const invalidCases: InvalidTestCase[] = [
         }
       }
     `,
+    options: [{ allowGlobals: { Error: true } }],
     errors: [{ messageId: "cannotThrowErrors" }],
   },
-  // todo
-  // {
-  //   name: "cannot use Math.random",
-  //   code: `
-  //   function impure() {
-  //     return Math.random() * 100;
-  //   }
-  //   `,
-  //   errors: [{ messageId: "cannotUseImpureFunctions" }],
-  // },
-  // {
-  //   name: "cannot use window.Math.random",
-  //   code: `
-  //   function impure() {
-  //     return window.Math.random() * 100;
-  //   }
-  //   `,
-  //   errors: [{ messageId: "cannotUseImpureFunctions" }],
-  // },
-  // {
-  //   name: "cannot use console (without option flag)",
-  //   code: `
-  //   function impure() {
-  //     console.log("foo");
-  //   }
-  //   `,
-  //   errors: [{ messageId: "cannotIgnoreFunctionCallResult" }],
-  // },
   {
     name: "cannot modify instance properties by assignment",
     code: `
-      class Impure {
+      class Foo {
         constructor() {
           this.value = 0;
         }
@@ -447,7 +389,7 @@ const invalidCases: InvalidTestCase[] = [
   {
     name: "cannot modify instance properties by object mutation",
     code: `
-      class Impure {
+      class Foo {
         constructor() {
           this.prop.value = 0;
         }
@@ -458,8 +400,8 @@ const invalidCases: InvalidTestCase[] = [
   {
     name: "cannot modify instance properties by incrementing using shorthand",
     code: `
-      class Impure {
-        impure() {
+      class Foo {
+        method() {
           this.value++;
         }
       }
@@ -469,8 +411,8 @@ const invalidCases: InvalidTestCase[] = [
   {
     name: "cannot modify instance properties by incrementing",
     code: `
-      class Impure {
-        impure() {
+      class Foo {
+        method() {
           this.value += 1;
         }
       }
@@ -480,8 +422,8 @@ const invalidCases: InvalidTestCase[] = [
   {
     name: "cannot modify instance properties by decrementing using shorthand",
     code: `
-      class Impure {
-        impure() {
+      class Foo {
+        method() {
           this.value--;
         }
       }
@@ -491,8 +433,8 @@ const invalidCases: InvalidTestCase[] = [
   {
     name: "cannot modify instance properties by decrementing",
     code: `
-      class Impure {
-        impure() {
+      class Foo {
+        method() {
           this.value -= 1;
         }
       }
@@ -501,7 +443,10 @@ const invalidCases: InvalidTestCase[] = [
   },
   {
     name: "cannot call functions and ignore the return value",
-    code: `mod2Pure.func1()`,
+    code: `
+    import mod2Pure from './mod2.pure';
+    mod2Pure.func1()
+    `,
     errors: [{ messageId: "cannotIgnoreFunctionCallResult" }],
   },
   {
@@ -515,6 +460,7 @@ const invalidCases: InvalidTestCase[] = [
     errors: [{ messageId: "cannotUseExternalMutableVariables" }],
   },
   {
+    only: true,
     name: "cannot spread external objects",
     code: `
       const vals = {a: 1, b: 2, c: 3};
