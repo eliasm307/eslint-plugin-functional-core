@@ -55,6 +55,14 @@ const validCases: ValidTestCase[] = [
     `,
     options: [{ allowGlobals: true }],
   },
+  {
+    name: "allows assigning to module.exports directly by default",
+    code: `module.exports = {};`,
+  },
+  {
+    name: "allows assigning to module.exports indirectly by default",
+    code: `module.exports.foo = {};`,
+  },
 ];
 
 const invalidCases: InvalidTestCase[] = [

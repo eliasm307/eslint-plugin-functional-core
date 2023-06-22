@@ -147,6 +147,7 @@ const rule = createRule<Options, MessageIds>({
       node: TSESTree.MemberExpression | TSESTree.Identifier | TSESTree.ThisExpression,
     ): {
       accessSegments: string[];
+      accessSegmentNodes: (TSESTree.Identifier | TSESTree.ThisExpression)[];
       isGlobalUsage: boolean;
     } | void {
       let accessSegmentNodes: (TSESTree.Identifier | TSESTree.ThisExpression)[] = [];
@@ -180,6 +181,7 @@ const rule = createRule<Options, MessageIds>({
         accessSegments: accessSegmentNodes.map((segmentNode) => {
           return isThisExpressionNode(segmentNode) ? "this" : segmentNode.name;
         }),
+        accessSegmentNodes,
         isGlobalUsage: isGlobalScopeUsage({
           node: rootIdentifier,
           scope: currentScope,
@@ -243,7 +245,12 @@ const rule = createRule<Options, MessageIds>({
 
         // is reference variable mutation?
         if (isMemberExpressionNode(targetNode)) {
-          const rootExpressionObject = getMemberExpressionChainNodes(targetNode)[0];
+          const usage = getUsageData(targetNode);
+          if (!usage) {
+            return; // unsupported member expression format so we can't determine the usage
+          }
+          const { accessSegmentNodes, accessSegments, isGlobalUsage } = usage;
+          const rootExpressionObject = accessSegmentNodes[0];
 
           if (isThisExpressionNode(rootExpressionObject)) {
             reportIssue({ node, messageId: "cannotModifyThisContext" });
@@ -261,6 +268,13 @@ const rule = createRule<Options, MessageIds>({
               !variableIsParameter(variable)
             ) {
               return; // assignment to a reference variable in the current scope is fine except for parameters
+            }
+
+            if (
+              isGlobalUsage &&
+              globalUsageIsAllowed({ accessSegments, allowedGlobals: allowGlobalsWithDefaults })
+            ) {
+              return;
             }
 
             reportIssue({ node, messageId: "cannotModifyExternalVariables" });
