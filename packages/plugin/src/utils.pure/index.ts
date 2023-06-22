@@ -1,7 +1,7 @@
 import { ESLintUtils } from "@typescript-eslint/utils";
 import path from "path";
 import type { AllowedGlobalsValue } from "./types";
-import { ALLOW_GLOBALS_DEFAULT } from "../constants";
+import { ALLOW_GLOBALS_DEFAULT } from "./config";
 
 export const createRule = ESLintUtils.RuleCreator(
   (name) =>

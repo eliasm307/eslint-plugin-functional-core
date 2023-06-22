@@ -1,4 +1,4 @@
-import type { AllowedGlobalsValue } from "./utils.pure/types";
+import type { AllowedGlobalsValue } from "./types";
 
 // ! This is a helper to get a list of methods of an object, but the output from this should be pasted into the object below for clarity
 // function allMembersPureExcept<T extends object>(
