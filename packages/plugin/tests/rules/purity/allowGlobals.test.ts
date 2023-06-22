@@ -4,58 +4,31 @@ import { createRuleTester, testCaseInPureFileByDefault } from "../../../src/util
 
 const validCases: ValidTestCase[] = [
   {
-    name: "can use pure Math methods (with option)",
+    name: "can use pure global methods directly (by default)",
     code: `
       function func() {
         return Math.sqrt(4)
       }
     `,
-    options: [
-      {
-        allowGlobals: {
-          Math: {
-            sqrt: true,
-          },
-        },
-      },
-    ],
   },
   {
-    name: "can use pure globalThis.Math methods (with option)",
+    name: "can use pure global methods from 'globalThis' (by default)",
     code: `
       function func() {
         return globalThis.Math.sqrt(4)
       }
     `,
-    options: [
-      {
-        allowGlobals: {
-          Math: {
-            sqrt: true,
-          },
-        },
-      },
-    ],
   },
   {
-    name: "can use pure window.Math methods (with option)",
+    name: "can use pure global methods from 'window' (by default)",
     code: `
       function func() {
         return window.Math.sqrt(4)
       }
     `,
-    options: [
-      {
-        allowGlobals: {
-          Math: {
-            sqrt: true,
-          },
-        },
-      },
-    ],
   },
   {
-    name: "can use console (with option flag)",
+    name: "can use console (by default)",
     code: `
       function func() {
         console.log("foo");
@@ -67,13 +40,6 @@ const validCases: ValidTestCase[] = [
         console.dir([]);
       }
     `,
-    options: [
-      {
-        allowGlobals: {
-          console: true,
-        },
-      },
-    ],
   },
   {
     name: "allows global keywords to be used as identifiers in other expressions",
@@ -93,7 +59,7 @@ const validCases: ValidTestCase[] = [
 
 const invalidCases: InvalidTestCase[] = [
   {
-    name: "cannot use Math.random (without option flag)",
+    name: "cannot use impure global method directly (without option flag)",
     code: `
     function impure() {
       return Math.random() * 100;
@@ -102,7 +68,7 @@ const invalidCases: InvalidTestCase[] = [
     errors: [{ messageId: "cannotReferenceGlobalContext" }],
   },
   {
-    name: "cannot use window.Math.random (without option flag)",
+    name: "cannot use impure global method from 'window' (without option flag)",
     code: `
     function impure() {
       return window.Math.random() * 100;
@@ -111,7 +77,7 @@ const invalidCases: InvalidTestCase[] = [
     errors: [{ messageId: "cannotReferenceGlobalContext" }],
   },
   {
-    name: "cannot use globalThis.Math.random (without option flag)",
+    name: "cannot use impure global method from 'globalThis' (without option flag)",
     code: `
     function impure() {
       return globalThis.Math.random() * 100;
@@ -120,7 +86,7 @@ const invalidCases: InvalidTestCase[] = [
     errors: [{ messageId: "cannotReferenceGlobalContext" }],
   },
   {
-    name: "cannot use global.Math.random (without option flag)",
+    name: "cannot use impure global method from 'global' (without option flag)",
     code: `
     function impure() {
       return global.Math.random() * 100;
@@ -129,26 +95,26 @@ const invalidCases: InvalidTestCase[] = [
     errors: [{ messageId: "cannotReferenceGlobalContext" }],
   },
   {
-    name: "cannot use console (without option flag)",
+    name: "cannot use pure global methods directly (with option)",
     code: `
-    function impure() {
-      console.log("foo");
-    }
+      function func() {
+        return Math.sqrt(4)
+      }
     `,
-    errors: [{ messageId: "cannotIgnoreFunctionCallResult" }, { messageId: "cannotReferenceGlobalContext" }],
-  },
-  {
-    name: "cannot use window.console (without option flag)",
-    code: `
-    function impure() {
-      window.console.log("foo");
-    }
-    `,
-    errors: [{ messageId: "cannotIgnoreFunctionCallResult" }, { messageId: "cannotReferenceGlobalContext" }],
+    options: [
+      {
+        allowGlobals: {
+          Math: {
+            sqrt: false,
+          },
+        },
+      },
+    ],
+    errors: [{ messageId: "cannotReferenceGlobalContext" }],
   },
 ];
 
-createRuleTester().run("purity > cannotImportImpureModules", rule, {
+createRuleTester().run("purity > allowGlobals", rule, {
   valid: validCases.map(testCaseInPureFileByDefault),
   invalid: invalidCases.map(testCaseInPureFileByDefault),
 });

@@ -67,5 +67,11 @@ describe("utils.pure", () => {
       const expected = { Foo: { Bar: true, Baz: false } };
       expect(actual).toEqual(expected);
     });
+
+    it("does not override if override is undefined", () => {
+      const actual = applyDeepOverrides({ Foo: { Bar: true } }, { Foo: undefined as any });
+      const expected = { Foo: { Bar: true } };
+      expect(actual).toEqual(expected);
+    });
   });
 });

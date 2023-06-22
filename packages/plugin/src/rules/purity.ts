@@ -8,7 +8,12 @@ import type { ScopeManager } from "@typescript-eslint/scope-manager";
 import { analyze as analyzeScope } from "@typescript-eslint/scope-manager";
 import type { TSESTree } from "@typescript-eslint/utils";
 import type { JSONSchema4 } from "@typescript-eslint/utils/dist/json-schema";
-import { createPurePathPredicate, createRule, globalUsageIsAllowed } from "../utils.pure";
+import {
+  createPurePathPredicate,
+  createRule,
+  getAllowGlobalsValueWithDefaults,
+  globalUsageIsAllowed,
+} from "../utils.pure";
 import {
   isAssignmentExpressionNode,
   isIdentifierNode,
@@ -135,6 +140,7 @@ const rule = createRule<Options, MessageIds>({
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
     const sourceCode = ruleContext.getSourceCode();
     const ruleConfig = ruleContext.options[0] || {};
+    const allowGlobalsWithDefaults = getAllowGlobalsValueWithDefaults(ruleConfig.allowGlobals);
     let scopeManager: ScopeManager;
 
     function getUsageData(
@@ -154,11 +160,6 @@ const rule = createRule<Options, MessageIds>({
         accessSegmentNodes = [];
         for (const chainNode of getMemberExpressionChainNodes(node)) {
           if (!isIdentifierNode(chainNode) && !isThisExpressionNode(chainNode)) {
-            const chainNodeText = sourceCode.getText(chainNode);
-            const memberExpressionText = sourceCode.getText(node);
-            console.warn(
-              `Unexpected node type: ${chainNode.type} (${chainNodeText}) in MemberExpression "${memberExpressionText}")`,
-            );
             return; // unsupported member expression format so we can't determine the usage
           }
           accessSegmentNodes.push(chainNode);
@@ -188,9 +189,7 @@ const rule = createRule<Options, MessageIds>({
 
     return {
       Program(node) {
-        scopeManager = analyzeScope(node, {
-          impliedStrict: true,
-        });
+        scopeManager = analyzeScope(node, { impliedStrict: true });
       },
       ImportDeclaration(node) {
         if (node.importKind === "type") {
@@ -213,7 +212,7 @@ const rule = createRule<Options, MessageIds>({
       ThisExpression(node) {
         const currentScope = getImmediateScope({ node, scopeManager });
         if (thisExpressionIsGlobalWhenUsedInScope(currentScope)) {
-          const directGlobalUsageAllowed = ruleConfig.allowGlobals === true;
+          const directGlobalUsageAllowed = allowGlobalsWithDefaults === true;
           if (!directGlobalUsageAllowed) {
             reportIssue({ node, messageId: "cannotReferenceGlobalContext" });
           }
@@ -337,7 +336,7 @@ const rule = createRule<Options, MessageIds>({
           if (!isPureGlobalFunctionName(node.callee.name)) {
             reportIssue({
               node: node.callee,
-              messageId: "cannotUseImpureFunctions",
+              messageId: "cannotReferenceGlobalContext",
             });
           }
         }
@@ -355,7 +354,7 @@ const rule = createRule<Options, MessageIds>({
           !isGlobalUsage ||
           globalUsageIsAllowed({
             accessSegments,
-            allowedGlobals: ruleConfig.allowGlobals,
+            allowedGlobals: allowGlobalsWithDefaults,
           })
         ) {
           return;
@@ -384,7 +383,7 @@ const rule = createRule<Options, MessageIds>({
             isGlobalUsage &&
             globalUsageIsAllowed({
               accessSegments,
-              allowedGlobals: ruleConfig.allowGlobals,
+              allowedGlobals: allowGlobalsWithDefaults,
             })
           ) {
             return;

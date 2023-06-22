@@ -116,6 +116,10 @@ export function applyDeepOverrides(
   original: AllowedGlobalsValue,
   override: AllowedGlobalsValue,
 ): AllowedGlobalsValue {
+  if (override === undefined) {
+    // no override so just return the original
+    return original;
+  }
   if (typeof original !== "object" || typeof override !== "object") {
     // cannot deep merge so just return the override
     return override;
@@ -128,6 +132,11 @@ export function applyDeepOverrides(
   return result;
 }
 
-export function getOverallAllowGlobalsValue(custom: AllowedGlobalsValue): AllowedGlobalsValue {
+export function getAllowGlobalsValueWithDefaults(
+  custom: AllowedGlobalsValue | undefined,
+): AllowedGlobalsValue {
+  if (custom === undefined) {
+    return ALLOW_GLOBALS_DEFAULT;
+  }
   return applyDeepOverrides(ALLOW_GLOBALS_DEFAULT, custom);
 }

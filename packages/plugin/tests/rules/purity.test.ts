@@ -25,6 +25,15 @@ const validCases: ValidTestCase[] = [
     `,
   },
   {
+    name: "can use immutable external primitive variables as properties",
+    code: `
+      const x = 1;
+      function foo() {
+        const y = {x};
+      }
+    `,
+  },
+  {
     name: "can mutate internal reference variables",
     code: `
       function foo() {
@@ -369,7 +378,7 @@ const invalidCases: InvalidTestCase[] = [
       }
     `,
     errors: [
-      { messageId: "cannotUseImpureFunctions" },
+      { messageId: "cannotReferenceGlobalContext" },
       { messageId: "cannotIgnoreFunctionCallResult" },
     ],
   },
