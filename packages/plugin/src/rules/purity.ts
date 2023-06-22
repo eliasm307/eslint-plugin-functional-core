@@ -26,7 +26,6 @@ import {
   variableIsDefinedInScope as variableIsDefinedInFunctionScope,
   variableIsParameter,
   variableIsImmutable,
-  isGlobalVariable,
   isGlobalScopeUsage,
   thisExpressionIsGlobalWhenUsedInScope,
 } from "../utils.pure/scope";
@@ -140,7 +139,7 @@ const rule = createRule<Options, MessageIds>({
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
     const sourceCode = ruleContext.getSourceCode();
     const ruleConfig = ruleContext.options[0] || {};
-    const allowGlobalsWithDefaults = getAllowGlobalsValueWithDefaults(ruleConfig.allowGlobals);
+    const allowedGlobals = getAllowGlobalsValueWithDefaults(ruleConfig.allowGlobals);
     let scopeManager: ScopeManager;
 
     function getUsageData(
@@ -214,7 +213,7 @@ const rule = createRule<Options, MessageIds>({
       ThisExpression(node) {
         const currentScope = getImmediateScope({ node, scopeManager });
         if (thisExpressionIsGlobalWhenUsedInScope(currentScope)) {
-          const directGlobalUsageAllowed = allowGlobalsWithDefaults === true;
+          const directGlobalUsageAllowed = allowedGlobals === true;
           if (!directGlobalUsageAllowed) {
             reportIssue({ node, messageId: "cannotReferenceGlobalContext" });
           }
@@ -270,10 +269,7 @@ const rule = createRule<Options, MessageIds>({
               return; // assignment to a reference variable in the current scope is fine except for parameters
             }
 
-            if (
-              isGlobalUsage &&
-              globalUsageIsAllowed({ accessSegments, allowedGlobals: allowGlobalsWithDefaults })
-            ) {
+            if (isGlobalUsage && globalUsageIsAllowed({ accessSegments, allowedGlobals })) {
               return;
             }
 
@@ -336,23 +332,26 @@ const rule = createRule<Options, MessageIds>({
         },
       CallExpression(node) {
         if (isIdentifierNode(node.callee)) {
-          const currentScope = getImmediateScope({ node, scopeManager });
-          const variable = getResolvedVariable({
-            node: node.callee,
-            scope: currentScope,
-          });
-          if (!isGlobalVariable(variable)) {
+          const usage = getUsageData(node.callee);
+          if (!usage) {
+            return;
+          }
+
+          const { isGlobalUsage, accessSegments } = usage;
+          if (!isGlobalUsage) {
             // using function from non-global scope is fine assuming it's pure,
             // if its imported this is a different error
             return;
           }
-          // todo check if global function is pure
-          if (!isPureGlobalFunctionName(node.callee.name)) {
-            reportIssue({
-              node: node.callee,
-              messageId: "cannotReferenceGlobalContext",
-            });
+
+          if (globalUsageIsAllowed({ accessSegments, allowedGlobals })) {
+            return;
           }
+
+          reportIssue({
+            node: node.callee,
+            messageId: "cannotReferenceGlobalContext",
+          });
         }
       },
       // top member expressions or standalone identifiers (defining these cases explicitly to avoid false positives)
@@ -364,13 +363,7 @@ const rule = createRule<Options, MessageIds>({
           return;
         }
         const { isGlobalUsage, accessSegments } = usage;
-        if (
-          !isGlobalUsage ||
-          globalUsageIsAllowed({
-            accessSegments,
-            allowedGlobals: allowGlobalsWithDefaults,
-          })
-        ) {
+        if (!isGlobalUsage || globalUsageIsAllowed({ accessSegments, allowedGlobals })) {
           return;
         }
         reportIssue({ node, messageId: "cannotReferenceGlobalContext" });
@@ -393,13 +386,7 @@ const rule = createRule<Options, MessageIds>({
             return;
           }
           const { isGlobalUsage, accessSegments } = usage;
-          if (
-            isGlobalUsage &&
-            globalUsageIsAllowed({
-              accessSegments,
-              allowedGlobals: allowGlobalsWithDefaults,
-            })
-          ) {
+          if (isGlobalUsage && globalUsageIsAllowed({ accessSegments, allowedGlobals })) {
             return;
           }
         }
@@ -408,22 +395,6 @@ const rule = createRule<Options, MessageIds>({
     };
   },
 });
-
-const PURE_GLOBAL_FUNCTION_NAMES = new Set([
-  "decodeURI",
-  "decodeURIComponent",
-  "encodeURI",
-  "encodeURIComponent",
-  "structuredClone",
-  "btoa",
-  "atob",
-  "escape",
-  "unescape",
-] satisfies (keyof Window | string)[]);
-
-function isPureGlobalFunctionName(name: string): boolean {
-  return PURE_GLOBAL_FUNCTION_NAMES.has(name);
-}
 
 function getMemberExpressionChainNodes(node: TSESTree.Node): TSESTree.Node[] {
   if (isMemberExpressionNode(node)) {

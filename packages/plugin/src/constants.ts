@@ -18,7 +18,21 @@ type MemberBooleanMap<T extends object> = {
   [K in keyof T extends string ? keyof T : never]: boolean;
 };
 
+const windowMembers: MemberBooleanMap<Window> = {
+  // pure
+  decodeURI: true,
+  decodeURIComponent: true,
+  encodeURI: true,
+  encodeURIComponent: true,
+  structuredClone: true,
+  btoa: true,
+  atob: true,
+  escape: true,
+  unescape: true,
+};
+
 export const ALLOW_GLOBALS_DEFAULT: AllowedGlobalsValue = {
+  ...windowMembers,
   Boolean: true,
   Symbol: true,
   Math: {

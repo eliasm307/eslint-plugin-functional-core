@@ -4,6 +4,14 @@ import { createRuleTester, testCaseInPureFileByDefault } from "../../../src/util
 
 const validCases: ValidTestCase[] = [
   {
+    name: "can use pure global functions directly (by default)",
+    code: `
+      function func() {
+        return Boolean(4)
+      }
+    `,
+  },
+  {
     name: "can use pure global methods directly (by default)",
     code: `
       function func() {
@@ -66,6 +74,11 @@ const validCases: ValidTestCase[] = [
 ];
 
 const invalidCases: InvalidTestCase[] = [
+  {
+    name: "cannot use impure global functions directly (without option flag)",
+    code: `const timer = setTimeout(() => {}, 100)`,
+    errors: [{ messageId: "cannotReferenceGlobalContext" }],
+  },
   {
     name: "cannot use impure global method directly (without option flag)",
     code: `
