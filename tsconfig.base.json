@@ -13,10 +13,8 @@
     "noImplicitReturns": true,
     "pretty": true,
     "skipLibCheck": true,
-    "sourceMap": true,
     "strict": true,
     "target": "es2017",
-    "lib": ["es2017", "DOM", "DOM.Iterable"],
-    "paths": {}
+    "lib": ["es2017", "DOM", "DOM.Iterable"]
   }
 }
