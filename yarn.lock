@@ -2789,7 +2789,22 @@ __metadata:
   languageName: node
   linkType: hard
 
-"eslint-plugin-functional-core@^0.3.0, eslint-plugin-functional-core@workspace:^, eslint-plugin-functional-core@workspace:packages/plugin":
+"eslint-plugin-functional-core@npm:^0.3.0":
+  version: 0.3.0
+  resolution: "eslint-plugin-functional-core@npm:0.3.0"
+  dependencies:
+    "@typescript-eslint/utils": ^5.59.9
+  peerDependencies:
+    "@typescript-eslint/parser": ^5.0.0
+    eslint: ">=7"
+  peerDependenciesMeta:
+    typescript:
+      optional: true
+  checksum: 67b79aa503d9bd6b3da366bb90856803484dc5bdb7db9f866b81640fb98619fc05a42d1e8374610550650f03eaeb367287912338803b3e24ce80cb2a1561779b
+  languageName: node
+  linkType: hard
+
+"eslint-plugin-functional-core@workspace:^, eslint-plugin-functional-core@workspace:packages/plugin":
   version: 0.0.0-use.local
   resolution: "eslint-plugin-functional-core@workspace:packages/plugin"
   dependencies:

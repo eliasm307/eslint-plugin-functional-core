@@ -9,7 +9,12 @@ import { analyze as analyzeScope } from "@typescript-eslint/scope-manager";
 import type { TSESTree } from "@typescript-eslint/utils";
 import type { JSONSchema4 } from "@typescript-eslint/utils/dist/json-schema";
 import { createPurePathPredicate, createRule, globalUsageIsAllowed } from "../utils.pure";
-import { isAssignmentExpressionNode, isIdentifierNode, isMemberExpressionNode, isThisExpressionNode } from "../utils.pure/TSESTree";
+import {
+  isAssignmentExpressionNode,
+  isIdentifierNode,
+  isMemberExpressionNode,
+  isThisExpressionNode,
+} from "../utils.pure/TSESTree";
 import {
   getImmediateScope,
   getResolvedVariable,
@@ -51,7 +56,8 @@ const rule = createRule<Options, MessageIds>({
     },
     // mixing file and module terminology here for accuracy as it could be a script or module in some cases
     messages: {
-      moduleCannotHaveSideEffectImports: "A pure module cannot have imports without specifiers, this is likely a side-effect",
+      moduleCannotHaveSideEffectImports:
+        "A pure module cannot have imports without specifiers, this is likely a side-effect",
       cannotReferenceGlobalContext: "A pure file/function cannot use global context",
       cannotModifyExternalVariables: "A pure function cannot modify external variables",
       cannotUseExternalMutableVariables: "A pure function cannot use external mutable variables",
@@ -59,7 +65,8 @@ const rule = createRule<Options, MessageIds>({
       cannotImportImpureModules: "Pure modules cannot import impure modules",
       cannotThrowErrors: "A pure file/function cannot throw errors",
       cannotModifyThisContext: "A pure file/function cannot modify 'this'",
-      cannotIgnoreFunctionCallResult: "A pure file/function cannot ignore function call return values, this is likely a side-effect",
+      cannotIgnoreFunctionCallResult:
+        "A pure file/function cannot ignore function call return values, this is likely a side-effect",
     },
     schema: [
       {
@@ -76,7 +83,8 @@ const rule = createRule<Options, MessageIds>({
             oneOf: [
               {
                 type: "object",
-                description: "A map of global variables that are allowed to be used in pure files/functions",
+                description:
+                  "A map of global variables that are allowed to be used in pure files/functions",
               },
               {
                 type: "boolean",
@@ -105,7 +113,13 @@ const rule = createRule<Options, MessageIds>({
     }
 
     const nodesWithExistingIssues = new WeakSet<TSESTree.Node>();
-    function reportIssue({ node, messageId }: { node: TSESTree.Node; messageId: MessageIds }): void {
+    function reportIssue({
+      node,
+      messageId,
+    }: {
+      node: TSESTree.Node;
+      messageId: MessageIds;
+    }): void {
       if (nodesWithExistingIssues.has(node)) {
         return;
       }
@@ -123,7 +137,9 @@ const rule = createRule<Options, MessageIds>({
     const ruleConfig = ruleContext.options[0] || {};
     let scopeManager: ScopeManager;
 
-    function getUsageData(node: TSESTree.MemberExpression | TSESTree.Identifier | TSESTree.ThisExpression): {
+    function getUsageData(
+      node: TSESTree.MemberExpression | TSESTree.Identifier | TSESTree.ThisExpression,
+    ): {
       accessSegments: string[];
       isGlobalUsage: boolean;
     } | void {
@@ -140,13 +156,17 @@ const rule = createRule<Options, MessageIds>({
           if (!isIdentifierNode(chainNode) && !isThisExpressionNode(chainNode)) {
             const chainNodeText = sourceCode.getText(chainNode);
             const memberExpressionText = sourceCode.getText(node);
-            console.warn(`Unexpected node type: ${chainNode.type} (${chainNodeText}) in MemberExpression "${memberExpressionText}")`);
+            console.warn(
+              `Unexpected node type: ${chainNode.type} (${chainNodeText}) in MemberExpression "${memberExpressionText}")`,
+            );
             return; // unsupported member expression format so we can't determine the usage
           }
           accessSegmentNodes.push(chainNode);
         }
       } else {
-        throw new Error(`Unexpected node type: ${(node as TSESTree.Node).type}\n\n${sourceCode.getText(node)}`);
+        throw new Error(
+          `Unexpected node type: ${(node as TSESTree.Node).type}\n\n${sourceCode.getText(node)}`,
+        );
       }
 
       if (accessSegmentNodes.length === 0) {
@@ -159,7 +179,10 @@ const rule = createRule<Options, MessageIds>({
         accessSegments: accessSegmentNodes.map((segmentNode) => {
           return isThisExpressionNode(segmentNode) ? "this" : segmentNode.name;
         }),
-        isGlobalUsage: isGlobalScopeUsage({ node: rootIdentifier, scope: currentScope }),
+        isGlobalUsage: isGlobalScopeUsage({
+          node: rootIdentifier,
+          scope: currentScope,
+        }),
       };
     }
 
@@ -196,7 +219,9 @@ const rule = createRule<Options, MessageIds>({
           }
         }
       },
-      "AssignmentExpression, UpdateExpression": function (node: TSESTree.AssignmentExpression | TSESTree.UpdateExpression) {
+      "AssignmentExpression, UpdateExpression": function (
+        node: TSESTree.AssignmentExpression | TSESTree.UpdateExpression,
+      ) {
         const targetNode = isAssignmentExpressionNode(node) ? node.left : node.argument;
 
         // is variable reassignment?
@@ -232,7 +257,10 @@ const rule = createRule<Options, MessageIds>({
               node: rootExpressionObject,
               scope: currentScope,
             });
-            if (variableIsDefinedInFunctionScope(variable, currentScope) && !variableIsParameter(variable)) {
+            if (
+              variableIsDefinedInFunctionScope(variable, currentScope) &&
+              !variableIsParameter(variable)
+            ) {
               return; // assignment to a reference variable in the current scope is fine except for parameters
             }
 
@@ -241,58 +269,65 @@ const rule = createRule<Options, MessageIds>({
         }
       },
       // Note: Arrow function selector is for implicit returns
-      "ReturnStatement, SpreadElement, Property, VariableDeclarator, ArrowFunctionExpression[body.type=Identifier]": function (
-        node:
-          | TSESTree.ReturnStatement
-          | TSESTree.SpreadElement
-          | TSESTree.Property
-          | TSESTree.VariableDeclarator
-          | TSESTree.ArrowFunctionExpression,
-      ) {
-        let valueNode: TSESTree.Node | null;
-        switch (node.type) {
-          case "ReturnStatement":
-          case "SpreadElement":
-            valueNode = node.argument;
-            break;
+      "ReturnStatement, SpreadElement, Property, VariableDeclarator, ArrowFunctionExpression[body.type=Identifier]":
+        function (
+          node:
+            | TSESTree.ReturnStatement
+            | TSESTree.SpreadElement
+            | TSESTree.Property
+            | TSESTree.VariableDeclarator
+            | TSESTree.ArrowFunctionExpression,
+        ) {
+          let valueNode: TSESTree.Node | null;
+          switch (node.type) {
+            case "ReturnStatement":
+            case "SpreadElement":
+              valueNode = node.argument;
+              break;
 
-          case "Property":
-            valueNode = node.value;
-            break;
+            case "Property":
+              valueNode = node.value;
+              break;
 
-          case "VariableDeclarator":
-            valueNode = node.init;
-            break;
+            case "VariableDeclarator":
+              valueNode = node.init;
+              break;
 
-          case "ArrowFunctionExpression":
-            valueNode = node.body;
-            break;
+            case "ArrowFunctionExpression":
+              valueNode = node.body;
+              break;
 
-          default:
-            throw new Error(`Unexpected node type: ${node.type}`);
-        }
-
-        if (isIdentifierNode(valueNode)) {
-          const currentScope = getImmediateScope({ node, scopeManager });
-          const variable = getResolvedVariable({ node: valueNode, scope: currentScope });
-          if (variableIsDefinedInFunctionScope(variable, currentScope)) {
-            return; // using any variable from the current scope is fine, including parameters
+            default:
+              throw new Error(`Unexpected node type: ${node.type}`);
           }
-          if (variableIsImmutable(variable)) {
-            return; // using any immutable variable is fine
-          }
-          reportIssue({
-            node: valueNode,
-            messageId: "cannotUseExternalMutableVariables",
-          });
-        }
 
-        // todo account for multiple return arguments as sequence expression
-      },
+          if (isIdentifierNode(valueNode)) {
+            const currentScope = getImmediateScope({ node, scopeManager });
+            const variable = getResolvedVariable({
+              node: valueNode,
+              scope: currentScope,
+            });
+            if (variableIsDefinedInFunctionScope(variable, currentScope)) {
+              return; // using any variable from the current scope is fine, including parameters
+            }
+            if (variableIsImmutable(variable)) {
+              return; // using any immutable variable is fine
+            }
+            reportIssue({
+              node: valueNode,
+              messageId: "cannotUseExternalMutableVariables",
+            });
+          }
+
+          // todo account for multiple return arguments as sequence expression
+        },
       CallExpression(node) {
         if (isIdentifierNode(node.callee)) {
           const currentScope = getImmediateScope({ node, scopeManager });
-          const variable = getResolvedVariable({ node: node.callee, scope: currentScope });
+          const variable = getResolvedVariable({
+            node: node.callee,
+            scope: currentScope,
+          });
           if (!isGlobalVariable(variable)) {
             // using function from non-global scope is fine assuming it's pure,
             // if its imported this is a different error
@@ -316,7 +351,13 @@ const rule = createRule<Options, MessageIds>({
           return;
         }
         const { isGlobalUsage, accessSegments } = usage;
-        if (!isGlobalUsage || globalUsageIsAllowed({ accessSegments, allowedGlobals: ruleConfig.allowGlobals })) {
+        if (
+          !isGlobalUsage ||
+          globalUsageIsAllowed({
+            accessSegments,
+            allowedGlobals: ruleConfig.allowGlobals,
+          })
+        ) {
           return;
         }
         reportIssue({ node, messageId: "cannotReferenceGlobalContext" });
@@ -339,7 +380,13 @@ const rule = createRule<Options, MessageIds>({
             return;
           }
           const { isGlobalUsage, accessSegments } = usage;
-          if (isGlobalUsage && globalUsageIsAllowed({ accessSegments, allowedGlobals: ruleConfig.allowGlobals })) {
+          if (
+            isGlobalUsage &&
+            globalUsageIsAllowed({
+              accessSegments,
+              allowedGlobals: ruleConfig.allowGlobals,
+            })
+          ) {
             return;
           }
         }

@@ -1,9 +1,11 @@
 import { ESLintUtils } from "@typescript-eslint/utils";
 import path from "path";
 import type { AllowedGlobalsValue } from "./types";
+import { ALLOW_GLOBALS_DEFAULT } from "../constants";
 
 export const createRule = ESLintUtils.RuleCreator(
-  (name) => `https://github.com/eliasm307/eslint-plugin-functional-core/blob/main/docs/rules/${name}.md`,
+  (name) =>
+    `https://github.com/eliasm307/eslint-plugin-functional-core/blob/main/docs/rules/${name}.md`,
 );
 
 function pathIsRelative(filePath: string): boolean {
@@ -47,8 +49,13 @@ export function createPurePathPredicate({
   return (inputPath: string): boolean => {
     // todo this should not be an error, need to use TS to know filename is not mutable
     // eslint-disable-next-line functional-core/purity
-    inputPath = getNormalisedAbsolutePath({ pathToResolve: inputPath, fromAbsoluteAbsoluteFilePath: filename });
-    return isBuiltInPureModuleImport(inputPath) || purePathRegexes.some((regex) => regex.test(inputPath));
+    inputPath = getNormalisedAbsolutePath({
+      pathToResolve: inputPath,
+      fromAbsoluteAbsoluteFilePath: filename,
+    });
+    return (
+      isBuiltInPureModuleImport(inputPath) || purePathRegexes.some((regex) => regex.test(inputPath))
+    );
   };
 }
 
@@ -104,3 +111,23 @@ export function globalUsageIsAllowed({
 //   "isSealed",
 //   "isExtensible",
 // ] satisfies (keyof ObjectConstructor)[]);
+
+export function applyDeepOverrides(
+  original: AllowedGlobalsValue,
+  override: AllowedGlobalsValue,
+): AllowedGlobalsValue {
+  if (typeof original !== "object" || typeof override !== "object") {
+    // cannot deep merge so just return the override
+    return override;
+  }
+
+  const result = { ...original };
+  for (const [overrideKey, overrideValue] of Object.entries(override)) {
+    result[overrideKey] = applyDeepOverrides(original[overrideKey], overrideValue);
+  }
+  return result;
+}
+
+export function getOverallAllowGlobalsValue(custom: AllowedGlobalsValue): AllowedGlobalsValue {
+  return applyDeepOverrides(ALLOW_GLOBALS_DEFAULT, custom);
+}

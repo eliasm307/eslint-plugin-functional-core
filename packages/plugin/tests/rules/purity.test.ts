@@ -186,7 +186,10 @@ const invalidCases: InvalidTestCase[] = [
         globalThis.foo.x = 1;
       }
     `,
-    errors: [{ messageId: "cannotModifyExternalVariables" }, { messageId: "cannotReferenceGlobalContext" }],
+    errors: [
+      { messageId: "cannotModifyExternalVariables" },
+      { messageId: "cannotReferenceGlobalContext" },
+    ],
   },
   {
     name: "cannot use globalThis",
@@ -204,7 +207,10 @@ const invalidCases: InvalidTestCase[] = [
         window.foo.x = 1;
       }
     `,
-    errors: [{ messageId: "cannotModifyExternalVariables" }, { messageId: "cannotReferenceGlobalContext" }],
+    errors: [
+      { messageId: "cannotModifyExternalVariables" },
+      { messageId: "cannotReferenceGlobalContext" },
+    ],
   },
   {
     name: "cannot use global window",
@@ -362,7 +368,10 @@ const invalidCases: InvalidTestCase[] = [
         setTimeout(() => null, 1000);
       }
     `,
-    errors: [{ messageId: "cannotUseImpureFunctions" }, { messageId: "cannotIgnoreFunctionCallResult" }],
+    errors: [
+      { messageId: "cannotUseImpureFunctions" },
+      { messageId: "cannotIgnoreFunctionCallResult" },
+    ],
   },
   {
     name: "cannot throw errors (without option flag)",
@@ -469,6 +478,11 @@ const invalidCases: InvalidTestCase[] = [
       }
     `,
     errors: [{ messageId: "cannotUseExternalMutableVariables" }],
+  },
+  {
+    name: "can recognise global method usage when chained with property access",
+    code: `const assert = globalRequire("chai").assert`,
+    errors: [{ messageId: "cannotReferenceGlobalContext" }],
   },
 ];
 
