@@ -3,51 +3,69 @@ import { applyDeepOverrides } from "../../src/utils.pure";
 describe("utils.pure", () => {
   describe("#applyDeepOverrides", () => {
     it("can merge false into true", () => {
-      expect(applyDeepOverrides(true, false)).toBe(false);
+      const actual = applyDeepOverrides(true, false);
+      const expected = false;
+      expect(actual).toBe(expected);
     });
 
     it("can merge true into false", () => {
-      expect(applyDeepOverrides(false, true)).toBe(true);
+      const actual = applyDeepOverrides(false, true);
+      const expected = true;
+      expect(actual).toBe(expected);
     });
 
     it("can merge same boolean values", () => {
-      expect(applyDeepOverrides(true, true)).toBe(true);
+      const actual = applyDeepOverrides(true, true);
+      const expected = true;
+      expect(actual).toBe(expected);
     });
 
     it("can merge false into object", () => {
-      expect(applyDeepOverrides({ Foo: true }, false)).toBe(false);
+      const actual = applyDeepOverrides({ Foo: true }, false);
+      const expected = false;
+      expect(actual).toBe(expected);
     });
 
     it("can merge true into object", () => {
-      expect(applyDeepOverrides({ Foo: false }, true)).toBe(true);
+      const actual = applyDeepOverrides({ Foo: false }, true);
+      const expected = true;
+      expect(actual).toBe(expected);
     });
 
     it("can merge same object values", () => {
-      expect(applyDeepOverrides({ Foo: true }, { Foo: true })).toEqual({ Foo: true });
+      const actual = applyDeepOverrides({ Foo: true }, { Foo: true });
+      const expected = { Foo: true };
+      expect(actual).toEqual(expected);
     });
 
     it("can merge different object values", () => {
-      expect(applyDeepOverrides({ Foo: true }, { Foo: false })).toEqual({ Foo: false });
+      const actual = applyDeepOverrides({ Foo: true }, { Foo: false });
+      const expected = { Foo: false };
+      expect(actual).toEqual(expected);
     });
 
     it("can merge different nested object values", () => {
-      expect(applyDeepOverrides({ Foo: { Bar: true } }, { Foo: { Bar: false } })).toEqual({
-        Foo: { Bar: false },
-      });
+      const actual = applyDeepOverrides({ Foo: { Bar: true } }, { Foo: { Bar: false } });
+      const expected = { Foo: { Bar: false } };
+      expect(actual).toEqual(expected);
     });
 
     it("can merge nested object into boolean", () => {
-      expect(applyDeepOverrides(true, { Foo: { Bar: false } })).toEqual({ Foo: { Bar: false } });
+      const actual = applyDeepOverrides(true, { Foo: { Bar: false } });
+      const expected = { Foo: { Bar: false } };
+      expect(actual).toEqual(expected);
     });
 
     it("can merge boolean into nested object", () => {
-      expect(applyDeepOverrides({ Foo: { Bar: true } }, { Foo: false })).toEqual({ Foo: false });
+      const actual = applyDeepOverrides({ Foo: { Bar: true } }, { Foo: false });
+      const expected = { Foo: false };
+      expect(actual).toEqual(expected);
     });
 
     it("can merge nested object into nested object without overlapping properties", () => {
-      expect(applyDeepOverrides({ Foo: { Bar: true } }, { Foo: { Baz: false } })).toEqual({
-        Foo: { Bar: true, Baz: false },
-      });
+      const actual = applyDeepOverrides({ Foo: { Bar: true } }, { Foo: { Baz: false } });
+      const expected = { Foo: { Bar: true, Baz: false } };
+      expect(actual).toEqual(expected);
     });
   });
 });
