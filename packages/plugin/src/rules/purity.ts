@@ -163,6 +163,7 @@ const rule = createRule<Options, MessageIds>({
           });
           return;
         }
+        // todo this should not be an issue with type checking
         if (!isPureModulePath(node.source.value)) {
           reportIssue({
             node,
@@ -340,6 +341,7 @@ const rule = createRule<Options, MessageIds>({
        * Matches function calls where the return is not captured
        */
       "ExpressionStatement > CallExpression": function (node: TSESTree.CallExpression) {
+        // todo this should not be an issue with type checking
         if (allowIgnoreFunctionCallResult) {
           return;
         }
