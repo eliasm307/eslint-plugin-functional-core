@@ -187,6 +187,50 @@ const validCases: ValidTestCase[] = [
       }
     `,
   },
+  {
+    name: "can call imported functions",
+    code: `
+      import externalFunc from "./mod.pure";
+
+      function func() {
+        return externalFunc();
+      }
+    `,
+  },
+  {
+    name: "can call constant arrow function references",
+    code: `
+      const externalFunc = () => 1;
+
+      function func() {
+        return externalFunc();
+      }
+    `,
+  },
+  {
+    name: "can call constant function expression",
+    code: `
+      const externalFunc = function() {
+        return 1;
+      };
+
+      function func() {
+        return externalFunc();
+      }
+    `,
+  },
+  {
+    name: "can call constant function declaration references",
+    code: `
+      function externalFunc() {
+        return 1;
+      }
+
+      function func() {
+        return externalFunc();
+      }
+    `,
+  },
 ];
 
 const invalidCases: InvalidTestCase[] = [
@@ -431,8 +475,8 @@ const invalidCases: InvalidTestCase[] = [
       }
     `,
     errors: [
-      { messageId: "cannotReferenceGlobalContext" },
       { messageId: "cannotIgnoreFunctionCallResult" },
+      { messageId: "cannotReferenceGlobalContext" },
     ],
   },
   {
@@ -567,6 +611,72 @@ const invalidCases: InvalidTestCase[] = [
       }
     `,
     errors: [{ messageId: "cannotUseExternalMutableVariables" }],
+  },
+  {
+    name: "cannot call mutable function references",
+    code: `
+      let mutableFunc = () => null;
+
+      function func() {
+        return mutableFunc();
+      }
+    `,
+    errors: [{ messageId: "cannotUseExternalMutableVariables" }],
+  },
+  {
+    name: "cannot call mutable function declaration",
+    code: `
+      let externalFunc = function() {
+        return 1;
+      };
+
+      function func() {
+        return externalFunc();
+      }
+    `,
+    errors: [{ messageId: "cannotUseExternalMutableVariables" }],
+  },
+  {
+    name: "cannot call functions from a mutable references",
+    code: `
+      let externalFunc = () => null;
+
+      const ref = {
+        externalFunc,
+      };
+
+      function func() {
+        return ref.externalFunc();
+      }
+    `,
+    errors: [{ messageId: "cannotUseExternalMutableVariables" }],
+  },
+  {
+    name: "cannot assign to const arrow function",
+    code: `
+      const externalFunc = () => null;
+
+      function func() {
+        externalFunc.assign = 1;
+      }
+    `,
+    errors: [{ messageId: "cannotModifyExternalVariables" }],
+  },
+  {
+    name: "cannot assign to const function expression",
+    code: `
+      const externalFunc = function() {
+        return null;
+      };
+
+      function func() {
+        externalFunc.assign = 1;
+      }
+    `,
+    errors: [
+      { messageId: "cannotModifyExternalVariables" },
+      { messageId: "cannotUseExternalMutableVariables" },
+    ],
   },
 ];
 

@@ -4,7 +4,6 @@
 // ScopeManager reference: https://eslint.org/docs/latest/extend/scope-manager-interface
 // Visualise scope: http://mazurov.github.io/escope-demo/
 
-import type { ScopeManager } from "@typescript-eslint/scope-manager";
 import { analyze as analyzeScope } from "@typescript-eslint/scope-manager";
 import type { TSESTree } from "@typescript-eslint/utils";
 import type { JSONSchema4 } from "@typescript-eslint/utils/dist/json-schema";
@@ -12,6 +11,7 @@ import { createPurePathPredicate, createRule, globalUsageIsAllowed } from "../ut
 import {
   isArrowFunctionExpressionNode,
   isAssignmentExpressionNode,
+  isCallExpressionNode,
   isIdentifierNode,
   isMemberExpressionNode,
   isThisExpressionNode,
@@ -22,11 +22,12 @@ import {
   variableIsDefinedInScope as variableIsDefinedInFunctionScope,
   variableIsParameter,
   variableIsImmutable,
-  isGlobalScopeUsage,
   thisExpressionIsGlobalWhenUsedInScope,
+  variableIsImmutableFunctionReference,
 } from "../utils.pure/scope";
-import type { AllowGlobalsValue } from "../utils.pure/types";
+import type { AllowGlobalsValue, PurityRuleContext } from "../utils.pure/types";
 import { getPurityRuleConfig } from "../utils.pure/config";
+import getUsageData from "../utils.pure/getUsageData";
 
 export type RuleConfig = {
   allowThrow?: boolean;
@@ -138,62 +139,17 @@ const rule = createRule<Options, MessageIds>({
       });
     }
 
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    const sourceCode = ruleContext.getSourceCode();
     const { allowGlobals, allowIgnoreFunctionCallResult, allowThrow } = getPurityRuleConfig(
       ruleContext.options,
     );
-    let scopeManager: ScopeManager;
 
-    function getUsageData(
-      node: TSESTree.MemberExpression | TSESTree.Identifier | TSESTree.ThisExpression,
-    ): {
-      accessSegments: string[];
-      accessSegmentNodes: (TSESTree.Identifier | TSESTree.ThisExpression)[];
-      isGlobalUsage: boolean;
-    } | void {
-      let accessSegmentNodes: (TSESTree.Identifier | TSESTree.ThisExpression)[] = [];
-      if (isIdentifierNode(node) || isThisExpressionNode(node)) {
-        accessSegmentNodes = [node];
-      } else if (isMemberExpressionNode(node)) {
-        // make sure we are using the top level member expression
-        while (isMemberExpressionNode(node.parent)) {
-          node = node.parent;
-        }
-        accessSegmentNodes = [];
-        for (const chainNode of getMemberExpressionChainNodes(node)) {
-          if (!isIdentifierNode(chainNode) && !isThisExpressionNode(chainNode)) {
-            return; // unsupported member expression format so we can't determine the usage
-          }
-          accessSegmentNodes.push(chainNode);
-        }
-      } else {
-        throw new Error(
-          `Unexpected node type: ${(node as TSESTree.Node).type}\n\n${sourceCode.getText(node)}`,
-        );
-      }
-
-      if (accessSegmentNodes.length === 0) {
-        throw new Error(`Unexpected node type: ${node.type}\n\n${sourceCode.getText(node)}`);
-      }
-
-      const currentScope = getImmediateScope({ node, scopeManager });
-      const rootIdentifier = accessSegmentNodes[0];
-      return {
-        accessSegments: accessSegmentNodes.map((segmentNode) => {
-          return isThisExpressionNode(segmentNode) ? "this" : segmentNode.name;
-        }),
-        accessSegmentNodes,
-        isGlobalUsage: isGlobalScopeUsage({
-          node: rootIdentifier,
-          scope: currentScope,
-        }),
-      };
-    }
+    const context = {
+      sourceCode: ruleContext.getSourceCode(),
+    } as PurityRuleContext;
 
     return {
       Program(node) {
-        scopeManager = analyzeScope(node);
+        context.scopeManager = analyzeScope(node);
       },
       ImportDeclaration(node) {
         if (node.importKind === "type") {
@@ -203,7 +159,7 @@ const rule = createRule<Options, MessageIds>({
           reportIssue({
             node,
             messageId: "moduleCannotHaveSideEffectImports",
-            data: { source: sourceCode.getText(node.source) },
+            data: { source: context.sourceCode.getText(node.source) },
           });
           return;
         }
@@ -212,20 +168,20 @@ const rule = createRule<Options, MessageIds>({
             node,
             messageId: "cannotImportImpureModules",
             data: {
-              source: sourceCode.getText(node.source),
+              source: context.sourceCode.getText(node.source),
             },
           });
         }
       },
       ThisExpression(node) {
-        const currentScope = getImmediateScope({ node, scopeManager });
+        const currentScope = getImmediateScope({ node, scopeManager: context.scopeManager });
         if (thisExpressionIsGlobalWhenUsedInScope(currentScope)) {
           const directGlobalUsageAllowed = allowGlobals === true;
           if (!directGlobalUsageAllowed) {
             reportIssue({
               node,
               messageId: "cannotReferenceGlobalContext",
-              data: { source: sourceCode.getText(node.parent) },
+              data: { source: context.sourceCode.getText(node.parent) },
             });
             return;
           }
@@ -234,7 +190,7 @@ const rule = createRule<Options, MessageIds>({
           reportIssue({
             node,
             messageId: "cannotUseExternalMutableVariables",
-            data: { source: sourceCode.getText(node.parent) },
+            data: { source: context.sourceCode.getText(node.parent) },
           });
         }
       },
@@ -245,7 +201,7 @@ const rule = createRule<Options, MessageIds>({
 
         // is variable reassignment?
         if (isIdentifierNode(targetNode)) {
-          const currentScope = getImmediateScope({ node, scopeManager });
+          const currentScope = getImmediateScope({ node, scopeManager: context.scopeManager });
           const assignmentTargetIdentifier = targetNode;
           const variable = getResolvedVariable({
             node: assignmentTargetIdentifier,
@@ -260,31 +216,31 @@ const rule = createRule<Options, MessageIds>({
           reportIssue({
             node,
             messageId: "cannotModifyExternalVariables",
-            data: { source: sourceCode.getText(node) },
+            data: { source: context.sourceCode.getText(node) },
           });
           return;
         }
 
         // is reference variable mutation?
         if (isMemberExpressionNode(targetNode)) {
-          const usage = getUsageData(targetNode);
+          const usage = getUsageData({ node: targetNode, context });
           if (!usage) {
             return; // unsupported member expression format so we can't determine the usage
           }
-          const { accessSegmentNodes, accessSegments, isGlobalUsage } = usage;
+          const { accessSegmentNodes, accessSegmentsNames: accessSegments, isGlobalUsage } = usage;
           const rootExpressionObject = accessSegmentNodes[0];
 
           if (isThisExpressionNode(rootExpressionObject)) {
             reportIssue({
               node,
               messageId: "cannotModifyThisContext",
-              data: { source: sourceCode.getText(node) },
+              data: { source: context.sourceCode.getText(node) },
             });
             return;
           }
 
           if (isIdentifierNode(rootExpressionObject)) {
-            const currentScope = getImmediateScope({ node, scopeManager });
+            const currentScope = getImmediateScope({ node, scopeManager: context.scopeManager });
             const variable = getResolvedVariable({
               node: rootExpressionObject,
               scope: currentScope,
@@ -303,13 +259,16 @@ const rule = createRule<Options, MessageIds>({
             reportIssue({
               node,
               messageId: "cannotModifyExternalVariables",
-              data: { source: sourceCode.getText(node) },
+              data: { source: context.sourceCode.getText(node) },
             });
           }
         }
       },
-      // match top member expressions or standalone identifier usages (defining these cases explicitly to avoid false positives)
-      // todo update selectors to get identifiers
+      /**
+       * Matches identifier usages then determines if the usages are pure or not
+       *
+       * @remark Matches top member expressions or standalone identifier usages (defining these cases explicitly to avoid false positives)
+       */
       [[
         "ReturnStatement > Identifier.argument",
         "SpreadElement > Identifier.argument",
@@ -320,93 +279,76 @@ const rule = createRule<Options, MessageIds>({
         "LogicalExpression > Identifier.left",
         "LogicalExpression > Identifier.right",
         "Identifier.test", // for if, while, etc statements
+        "CallExpression > Identifier.callee",
         ":not(MemberExpression) > MemberExpression",
       ].join(",")](node: TSESTree.Identifier | TSESTree.MemberExpression) {
-        const usage = getUsageData(node);
+        const usage = getUsageData({ node, context });
         if (!usage) {
           return;
         }
-        const { isGlobalUsage, accessSegments, accessSegmentNodes } = usage;
+        const { isGlobalUsage, accessSegmentsNames: accessSegments, accessSegmentNodes } = usage;
         if (isGlobalUsage) {
           if (!globalUsageIsAllowed({ accessSegments, allowGlobals })) {
-            debugger;
             reportIssue({
               node,
               messageId: "cannotReferenceGlobalContext",
-              data: { source: sourceCode.getText(node) },
+              data: { source: context.sourceCode.getText(node) },
             });
           }
+          // ignore any other issues if the global usage is allowed
           return;
         }
 
         const rootExpressionObject = accessSegmentNodes[0];
         if (isIdentifierNode(rootExpressionObject)) {
-          const currentScope = getImmediateScope({ node, scopeManager });
+          const currentScope = getImmediateScope({ node, scopeManager: context.scopeManager });
           const variable = getResolvedVariable({
             node: rootExpressionObject,
             scope: currentScope,
           });
+          if (variableIsImmutable(variable)) {
+            // using any immutable variable is fine
+            return;
+          }
+          if (isCallExpressionNode(node.parent) && variableIsImmutableFunctionReference(variable)) {
+            // functions can be immutable regarding being called as functions
+            // however they can still be mutated as objects, so the mutability is conditional
+            return;
+          }
           if (variableIsDefinedInFunctionScope(variable, currentScope)) {
             return; // using any variable from the current scope is fine, including parameters
-          }
-          if (variableIsImmutable(variable)) {
-            return; // using any immutable variable is fine
           }
           reportIssue({
             node: rootExpressionObject,
             messageId: "cannotUseExternalMutableVariables",
-            data: { source: sourceCode.getText(node) },
+            data: { source: context.sourceCode.getText(node) },
           });
         }
 
         // todo account for multiple return arguments as sequence expression
-      },
-
-      CallExpression(node) {
-        if (isIdentifierNode(node.callee)) {
-          const usage = getUsageData(node.callee);
-          if (!usage) {
-            return;
-          }
-
-          const { isGlobalUsage, accessSegments } = usage;
-          if (!isGlobalUsage) {
-            // using function from non-global scope is fine assuming it's pure,
-            // if its imported this is a different error
-            return;
-          }
-
-          if (globalUsageIsAllowed({ accessSegments, allowGlobals })) {
-            return;
-          }
-
-          debugger;
-          reportIssue({
-            node: node.callee,
-            messageId: "cannotReferenceGlobalContext",
-            data: { source: sourceCode.getText(node) },
-          });
-        }
       },
       ThrowStatement(node) {
         if (!allowThrow) {
           reportIssue({
             node,
             messageId: "cannotThrowErrors",
-            data: { source: sourceCode.getText(node) },
+            data: { source: context.sourceCode.getText(node) },
           });
         }
       },
+      /**
+       * Matches function calls where the return is not captured
+       */
       "ExpressionStatement > CallExpression": function (node: TSESTree.CallExpression) {
         if (allowIgnoreFunctionCallResult) {
           return;
         }
         if (isIdentifierNode(node.callee) || isMemberExpressionNode(node.callee)) {
-          const usage = getUsageData(node.callee);
+          const usage = getUsageData({ node: node.callee, context });
           if (!usage) {
             return;
           }
-          const { isGlobalUsage, accessSegments } = usage;
+          const { isGlobalUsage, accessSegmentsNames: accessSegments } = usage;
           if (isGlobalUsage && globalUsageIsAllowed({ accessSegments, allowGlobals })) {
             return;
           }
@@ -414,18 +356,11 @@ const rule = createRule<Options, MessageIds>({
         reportIssue({
           node,
           messageId: "cannotIgnoreFunctionCallResult",
-          data: { source: sourceCode.getText(node) },
+          data: { source: context.sourceCode.getText(node) },
         });
       },
     };
   },
 });
-
-function getMemberExpressionChainNodes(node: TSESTree.Node): TSESTree.Node[] {
-  if (isMemberExpressionNode(node)) {
-    return [...getMemberExpressionChainNodes(node.object), node.property];
-  }
-  return [node];
-}
 
 export default rule;
