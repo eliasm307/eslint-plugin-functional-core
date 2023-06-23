@@ -1,4 +1,4 @@
-import { applyDeepOverrides } from "../../src/utils.pure";
+import { applyDeepOverrides } from "../../src/utils.pure/config";
 
 describe("utils.pure", () => {
   describe("#applyDeepOverrides", () => {

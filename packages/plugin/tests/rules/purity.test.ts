@@ -176,6 +176,17 @@ const validCases: ValidTestCase[] = [
     `,
     options: [{ allowIgnoreFunctionCallResult: true }],
   },
+  {
+    name: "can use external const variables in conditions",
+    code: `
+      const x = 1;
+      function foo() {
+        if(x) {
+          return 1;
+        }
+      }
+    `,
+  },
 ];
 
 const invalidCases: InvalidTestCase[] = [
@@ -207,7 +218,7 @@ const invalidCases: InvalidTestCase[] = [
         const x = globalThis;
       }
     `,
-    errors: [{ messageId: "cannotUseExternalMutableVariables" }],
+    errors: [{ messageId: "cannotReferenceGlobalContext" }],
   },
   {
     name: "cannot modify global window",
@@ -228,7 +239,7 @@ const invalidCases: InvalidTestCase[] = [
         const x = window;
       }
     `,
-    errors: [{ messageId: "cannotUseExternalMutableVariables" }],
+    errors: [{ messageId: "cannotReferenceGlobalContext" }],
   },
   {
     name: "cannot use global this",
@@ -311,7 +322,11 @@ const invalidCases: InvalidTestCase[] = [
         x.a = 1;
       }
     `,
-    errors: [{ messageId: "cannotModifyExternalVariables" }],
+    // ? should these be separate errors?
+    errors: [
+      { messageId: "cannotModifyExternalVariables" },
+      { messageId: "cannotUseExternalMutableVariables" },
+    ],
   },
   {
     name: "cannot explicit return external reference variables",
@@ -339,6 +354,44 @@ const invalidCases: InvalidTestCase[] = [
       }
     `,
     errors: [{ messageId: "cannotModifyExternalVariables" }],
+  },
+  {
+    name: "cannot use external mutable let variables in single conditions",
+    code: `
+      let x = 1;
+      function foo() {
+        if(x) {
+          return 1;
+        }
+      }
+    `,
+    errors: [{ messageId: "cannotUseExternalMutableVariables" }],
+  },
+  {
+    name: "cannot use external mutable let variables in chained conditions",
+    code: `
+      let x = {};
+      const y = 1
+      function foo() {
+        if(x.y || y) {
+          return 1;
+        }
+      }
+    `,
+    errors: [{ messageId: "cannotUseExternalMutableVariables" }],
+  },
+  {
+    name: "cannot use external mutable var variables in conditions",
+    code: `
+      var x = 1;
+      function foo() {
+        if(x) {
+          return 1;
+        }
+      }
+    `,
+    // var is not block scoped in this case
+    errors: [{ messageId: "cannotReferenceGlobalContext" }],
   },
   {
     name: "cannot use external reference variables",
@@ -492,6 +545,28 @@ const invalidCases: InvalidTestCase[] = [
     name: "can recognise global method usage when chained with property access",
     code: `const assert = globalRequire("chai").assert`,
     errors: [{ messageId: "cannotReferenceGlobalContext" }],
+  },
+  {
+    name: "arrow functions cannot use 'this' for return value",
+    code: `
+      function func() {
+        return () => this.someCondition();
+      }
+    `,
+    errors: [{ messageId: "cannotUseExternalMutableVariables" }],
+  },
+  {
+    name: "arrow functions cannot use 'this' in logic",
+    code: `
+      function func() {
+        return () => {
+          if (this.someCondition()) {
+            return 1;
+          }
+        };
+      }
+    `,
+    errors: [{ messageId: "cannotUseExternalMutableVariables" }],
   },
 ];
 

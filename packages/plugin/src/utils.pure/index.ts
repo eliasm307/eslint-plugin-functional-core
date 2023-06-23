@@ -1,7 +1,6 @@
 import { ESLintUtils } from "@typescript-eslint/utils";
 import path from "path";
-import type { AllowedGlobalsValue } from "./types";
-import { ALLOW_GLOBALS_DEFAULT } from "./config";
+import type { AllowGlobalsValue } from "./types";
 
 export const createRule = ESLintUtils.RuleCreator(
   (name) =>
@@ -65,10 +64,10 @@ function isGlobalAlias(alias: string): boolean {
 
 export function globalUsageIsAllowed({
   accessSegments,
-  allowedGlobals,
+  allowGlobals,
 }: {
   accessSegments: string[];
-  allowedGlobals: AllowedGlobalsValue | undefined;
+  allowGlobals: AllowGlobalsValue | undefined;
 }): boolean {
   if (isGlobalAlias(accessSegments[0])) {
     // ignore global aliases
@@ -76,67 +75,29 @@ export function globalUsageIsAllowed({
   }
 
   // check if global scope has general value
-  if (allowedGlobals === undefined) {
+  if (allowGlobals === undefined) {
     return false; // default
   }
-  if (typeof allowedGlobals === "boolean") {
-    return allowedGlobals;
+  if (typeof allowGlobals === "boolean") {
+    return allowGlobals;
   }
-  if (typeof allowedGlobals !== "object" || allowedGlobals === null) {
+  if (typeof allowGlobals !== "object" || allowGlobals === null) {
     return false; // default, cant get global scopes
   }
 
   // check defined scopes
   for (const segment of accessSegments) {
-    allowedGlobals = allowedGlobals[segment];
-    if (allowedGlobals === undefined) {
+    allowGlobals = allowGlobals[segment];
+    if (allowGlobals === undefined) {
       return false; // default
     }
-    if (typeof allowedGlobals === "boolean") {
-      return allowedGlobals;
+    if (typeof allowGlobals === "boolean") {
+      return allowGlobals;
     }
-    if (typeof allowedGlobals !== "object" || allowedGlobals === null) {
+    if (typeof allowGlobals !== "object" || allowGlobals === null) {
       break; // cant get the next scope anyway
     }
   }
 
   return false; // default
-}
-
-// const PURE_OBJECT_FUNCTION_NAMES = new Set([
-//   "freeze",
-//   "seal",
-//   "preventExtensions",
-//   "isFrozen",
-//   "isSealed",
-//   "isExtensible",
-// ] satisfies (keyof ObjectConstructor)[]);
-
-export function applyDeepOverrides(
-  original: AllowedGlobalsValue,
-  override: AllowedGlobalsValue,
-): AllowedGlobalsValue {
-  if (override === undefined) {
-    // no override so just return the original
-    return original;
-  }
-  if (typeof original !== "object" || typeof override !== "object") {
-    // cannot deep merge so just return the override
-    return override;
-  }
-
-  const result = { ...original };
-  for (const [overrideKey, overrideValue] of Object.entries(override)) {
-    result[overrideKey] = applyDeepOverrides(original[overrideKey], overrideValue);
-  }
-  return result;
-}
-
-export function getAllowGlobalsValueWithDefaults(
-  custom: AllowedGlobalsValue | undefined,
-): AllowedGlobalsValue {
-  if (custom === undefined) {
-    return ALLOW_GLOBALS_DEFAULT;
-  }
-  return applyDeepOverrides(ALLOW_GLOBALS_DEFAULT, custom);
 }

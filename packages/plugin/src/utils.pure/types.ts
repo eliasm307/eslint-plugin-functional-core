@@ -14,4 +14,4 @@ export type FunctionalCoreGlobalSettings = {
   pureModules: string[];
 };
 
-export type AllowedGlobalsValue = boolean | { [key: string]: boolean | AllowedGlobalsValue };
+export type AllowGlobalsValue = boolean | { [key: string]: boolean | AllowGlobalsValue };
