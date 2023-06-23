@@ -15,11 +15,13 @@ import type { AllowGlobalsValue } from "./types";
 //   return output;
 // }
 
+type StringOnly<T> = T extends string ? T : never;
+
 type MemberBooleanMap<T extends object> = {
-  [K in keyof T extends string ? keyof T : never]: boolean;
+  [K in keyof T as StringOnly<keyof T>]: AllowGlobalsValue;
 };
 
-const windowMembers: MemberBooleanMap<Window> = {
+const ALLOW_GLOBALS_DEFAULT = {
   // pure
   decodeURI: true,
   decodeURIComponent: true,
@@ -30,10 +32,20 @@ const windowMembers: MemberBooleanMap<Window> = {
   atob: true,
   escape: true,
   unescape: true,
-};
+  require: true,
+  module: true,
+  describe: true,
+  it: true,
+  // @ts-expect-error [issue finding global type?]
+  expect: true,
+  jest: true,
+  console: true,
 
-const ALLOW_GLOBALS_DEFAULT: AllowGlobalsValue = {
-  ...windowMembers,
+  // impure
+  // false by default but can be overridden
+  process: false,
+
+  // namespaces
   Boolean: true,
   Symbol: true,
   Math: {
@@ -111,16 +123,53 @@ const ALLOW_GLOBALS_DEFAULT: AllowGlobalsValue = {
     seal: false, // ?
     prototype: false, // todo define whats allowed from instances
   } satisfies MemberBooleanMap<typeof Object>,
-  console: true,
-  require: true,
-  module: true,
-  describe: true,
-  it: true,
-  expect: true,
-  jest: true,
-  // false by default but can be overridden
-  process: false,
-};
+  Array: {
+    // pure
+    from: true,
+    isArray: true,
+    of: true,
+
+    // impure
+    prototype: false, // todo define whats allowed from instances
+  } satisfies MemberBooleanMap<ArrayConstructor>,
+  String: {
+    // pure
+    fromCharCode: true,
+    fromCodePoint: true,
+    raw: true,
+
+    // impure
+    prototype: false, // todo define whats allowed from instances
+  } satisfies MemberBooleanMap<StringConstructor>,
+  Number: {
+    // pure
+    isFinite: true,
+    isInteger: true,
+    isNaN: true,
+    isSafeInteger: true,
+    parseFloat: true,
+    parseInt: true,
+    EPSILON: true,
+    MAX_SAFE_INTEGER: true,
+    MAX_VALUE: true,
+    MIN_SAFE_INTEGER: true,
+    MIN_VALUE: true,
+    NEGATIVE_INFINITY: true,
+    POSITIVE_INFINITY: true,
+    NaN: true,
+
+    // impure
+    prototype: false, // todo define whats allowed from instances
+  } satisfies MemberBooleanMap<NumberConstructor>,
+  BigInt: {
+    // pure
+    asIntN: true,
+    asUintN: true,
+
+    // impure
+    prototype: false, // todo define whats allowed from instances
+  } satisfies MemberBooleanMap<BigIntConstructor>,
+} satisfies Partial<MemberBooleanMap<typeof globalThis>>;
 
 export function applyDeepOverrides(
   original: AllowGlobalsValue,
