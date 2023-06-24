@@ -41,10 +41,12 @@ Then configure the rules you want to use under the rules section.
 <!-- begin auto-generated rules list -->
 
 💼 Configurations enabled in.\
-✅ Set in the `recommended` configuration.
+⚠️ Configurations set to warn in.\
+✅ Set in the `recommended` configuration.\
+🔒 Set in the `strict` configuration.
 
-| Name                           | Description | 💼 |
-| :----------------------------- | :---------- | :- |
-| [purity](docs/rules/purity.md) | TBC         | ✅  |
+| Name                           | Description | 💼  | ⚠️  |
+| :----------------------------- | :---------- | :-- | :-- |
+| [purity](docs/rules/purity.md) | TBC         | 🔒  | ✅  |
 
 <!-- end auto-generated rules list -->

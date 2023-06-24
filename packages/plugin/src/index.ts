@@ -1,6 +1,6 @@
 /* eslint-disable import/no-import-module-exports */
-import configs from './configs';
-import rules from './rules';
+import configs from "./configs";
+import rules from "./rules";
 
 // need to use this format for the rules to be picked up by eslint
 module.exports = {

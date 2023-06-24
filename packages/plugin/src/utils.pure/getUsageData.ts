@@ -98,7 +98,10 @@ export default function getUsageData({
   return {
     accessSegmentNodes,
     accessSegmentsNames: accessSegmentNodes.map(nodeToString),
-    isGlobalUsage: isGlobalScopeUsage({ node: rootNode, scope: immediateScope }),
+    isGlobalUsage: isGlobalScopeUsage({
+      node: rootNode,
+      scope: immediateScope,
+    }),
     immediateScope,
     rootAccessNode: rootNode,
   };

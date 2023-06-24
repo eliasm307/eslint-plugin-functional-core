@@ -270,7 +270,10 @@ const rule = createRule<Options, MessageIds>({
               ) {
                 return;
               }
-              reportIssue({ node, messageId: "cannotMutateFunctionParameters" });
+              reportIssue({
+                node,
+                messageId: "cannotMutateFunctionParameters",
+              });
               return;
             }
 

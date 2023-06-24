@@ -4,7 +4,9 @@ import type { MessageIds, Options } from "../rules/purity";
 export type ValidTestCase = ESLintUtils.ValidTestCase<Options>;
 export type InvalidTestCase = ESLintUtils.InvalidTestCase<MessageIds, Options>;
 
-export function testCaseInPureFileByDefault<Case extends ValidTestCase | InvalidTestCase>(c: Case): Case {
+export function testCaseInPureFileByDefault<Case extends ValidTestCase | InvalidTestCase>(
+  c: Case,
+): Case {
   return { filename: "file.pure.ts", ...c };
 }
 

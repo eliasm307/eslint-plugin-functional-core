@@ -150,7 +150,10 @@ export function variableIsReduceAccumulatorParameter(variable: Variable | undefi
     return false;
   }
 
-  return isArrayReduceCallbackFunctionNode({ scope: variable.scope, node: functionNode });
+  return isArrayReduceCallbackFunctionNode({
+    scope: variable.scope,
+    node: functionNode,
+  });
 }
 
 export function variableIsDefinedInScope(variable: Variable | undefined, scope: Scope): boolean {
