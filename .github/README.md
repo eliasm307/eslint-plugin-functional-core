@@ -1,1 +1,1 @@
-./packages/plugin/README.md
+../packages/plugin/README.md
