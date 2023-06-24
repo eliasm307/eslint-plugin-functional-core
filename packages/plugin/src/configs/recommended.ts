@@ -1,6 +1,14 @@
+import type { RuleConfig } from "../rules/purity";
+
 export default {
-  extends: [],
   rules: {
-    "functional-core/purity": "error",
+    "functional-core/purity": [
+      "warn",
+      {
+        allowThrow: true,
+        allowIgnoreFunctionCallResult: false,
+        allowMutatingReduceAccumulator: true,
+      } satisfies RuleConfig,
+    ],
   },
 };

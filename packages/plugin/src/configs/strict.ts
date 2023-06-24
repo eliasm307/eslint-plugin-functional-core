@@ -2,7 +2,6 @@ import type { RuleConfig } from "../rules/purity";
 import type { SharedConfigurationSettings } from "../utils.pure/types";
 
 export default {
-  extends: [],
   rules: {
     "functional-core/purity": [
       "error",
@@ -10,6 +9,7 @@ export default {
         allowThrow: false,
         allowGlobals: false,
         allowIgnoreFunctionCallResult: false,
+        allowMutatingReduceAccumulator: false,
       } satisfies Required<RuleConfig>,
     ],
   },
