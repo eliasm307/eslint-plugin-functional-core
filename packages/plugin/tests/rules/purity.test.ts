@@ -75,7 +75,7 @@ const validCases: ValidTestCase[] = [
     code: `const foo = [].map((val) => val);`,
   },
   {
-    name: "can modify local arrays",
+    name: "can mutate arrays defined in same scope",
     code: `
       function update(val) {
           const vals = ["a", "b"];
@@ -85,7 +85,7 @@ const validCases: ValidTestCase[] = [
     `,
   },
   {
-    name: "can spread local arrays",
+    name: "can spread arrays defined in same scope",
     code: `
       function update(val) {
           const vals = ["a", "b"];
@@ -94,10 +94,27 @@ const validCases: ValidTestCase[] = [
     `,
   },
   {
-    name: "can spread local arrays from args",
+    name: "can spread arrays from parameters",
     code: `
       function update(vals, val) {
           return [...vals, val];
+      }
+    `,
+  },
+  {
+    name: "can spread objects defined in same scope",
+    code: `
+      function update(val) {
+          const vals = {a: 1, b: 2};
+          return {...vals, val};
+      }
+    `,
+  },
+  {
+    name: "can spread objects from parameters",
+    code: `
+      function update(vals, val) {
+          return {...vals, val};
       }
     `,
   },
@@ -231,27 +248,142 @@ const validCases: ValidTestCase[] = [
       }
     `,
   },
+  {
+    name: "can call parameters",
+    code: `
+      function func(externalFunc) {
+        return externalFunc();
+      }
+    `,
+  },
+  {
+    name: "can call parameter methods",
+    code: `
+      function func(param) {
+        return param.method();
+      }
+    `,
+  },
+  {
+    name: "can mutate array literal accumulator in reduce (with option)",
+    code: `
+      function func() {
+        return [1,2,3].reduce((acc, val) => {
+          acc[val] = val;
+          return acc;
+        }, {});
+      }
+    `,
+    options: [{ allowMutatingReduceAccumulator: true }],
+  },
+  {
+    name: "can mutate array variable accumulator in reduce (with option)",
+    code: `
+      function func() {
+        const arr = [1,2,3];
+        return arr.reduce((acc, val) => {
+          acc[val] = val;
+          return acc;
+        }, {});
+      }
+    `,
+    options: [{ allowMutatingReduceAccumulator: true }],
+  },
+  // todo support types
+  // {
+  //   name: "can mutate explicitly typed array variable accumulator in reduce (with option)",
+  //   code: `
+  //     function func(arr: number[]) {
+  //       return arr.reduce((acc, val) => {
+  //         acc[val] = val;
+  //         return acc;
+  //       }, {});
+  //     }
+  //   `,
+  //   options: [{ allowMutatingReduceAccumulator: true }],
+  // },
+  {
+    name: "can call external function references that are constant",
+    code: `
+      const externalFunc = () => 1;
+      function func() {
+        return externalFunc();
+      }
+    `,
+  },
+  {
+    name: "can use destructured object properties from function parameter",
+    code: `
+      function x({ val }) {
+        return val;
+      }
+    `,
+  },
+  {
+    name: "can use destructured object properties from function parameter in a child function",
+    code: `
+      function x({ val }) {
+        return () => val;
+      }
+    `,
+  },
+  {
+    name: "can use deep destructured object properties from function parameter",
+    code: `
+      function x({ obj: { val } }) {
+        return () => val;
+      }
+    `,
+  },
+  {
+    name: "can use destructured array elements from function parameter",
+    code: `
+      function x([val]) {
+        return () => val;
+      }
+    `,
+  },
+  {
+    name: "can use fixed native global values",
+    code: `
+      function x(key) {
+        switch(key) {
+          case "Infinity":
+            return Infinity;
+
+          case "NaN":
+            return NaN;
+
+          case "undefined":
+            return undefined;
+
+          case "null":
+            return null;
+        }
+      }
+    `,
+  },
 ];
 
 const invalidCases: InvalidTestCase[] = [
   {
-    name: "cannot modify properties of this",
+    name: "cannot mutate properties of this",
     code: `
       function foo() {
         this.foo.x = 1;
       }
     `,
-    errors: [{ messageId: "cannotModifyThisContext" }],
+    errors: [{ messageId: "cannotMutateThisContext" }],
   },
   {
-    name: "cannot modify globalThis",
+    name: "cannot mutate globalThis",
     code: `
       function foo() {
         globalThis.foo.x = 1;
       }
     `,
     errors: [
-      { messageId: "cannotModifyExternalVariables" },
+      { messageId: "cannotMutateExternalVariables" },
       { messageId: "cannotReferenceGlobalContext" },
     ],
   },
@@ -265,14 +397,14 @@ const invalidCases: InvalidTestCase[] = [
     errors: [{ messageId: "cannotReferenceGlobalContext" }],
   },
   {
-    name: "cannot modify global window",
+    name: "cannot mutate global window",
     code: `
       function foo() {
         window.foo.x = 1;
       }
     `,
     errors: [
-      { messageId: "cannotModifyExternalVariables" },
+      { messageId: "cannotMutateExternalVariables" },
       { messageId: "cannotReferenceGlobalContext" },
     ],
   },
@@ -295,13 +427,13 @@ const invalidCases: InvalidTestCase[] = [
     errors: [{ messageId: "cannotReferenceGlobalContext" }],
   },
   {
-    name: "cannot modify global variables",
+    name: "cannot mutate global variables",
     code: `
       function foo() {
         x = 1;
       }
     `,
-    errors: [{ messageId: "cannotModifyExternalVariables" }],
+    errors: [{ messageId: "cannotMutateExternalVariables" }],
   },
   {
     name: "cannot have side-effect imports",
@@ -309,14 +441,14 @@ const invalidCases: InvalidTestCase[] = [
     errors: [{ messageId: "moduleCannotHaveSideEffectImports" }],
   },
   {
-    name: "cannot modify mutable external primitive variables",
+    name: "cannot mutate mutable external primitive variables",
     code: `
       let x = 1;
       function foo() {
         x = 2;
       }
     `,
-    errors: [{ messageId: "cannotModifyExternalVariables" }],
+    errors: [{ messageId: "cannotMutateExternalVariables" }],
   },
   {
     name: "cannot increment mutable external primitive variables",
@@ -326,7 +458,7 @@ const invalidCases: InvalidTestCase[] = [
         x += 1;
       }
     `,
-    errors: [{ messageId: "cannotModifyExternalVariables" }],
+    errors: [{ messageId: "cannotMutateExternalVariables" }],
   },
   {
     name: "cannot increment mutable external primitive variables using shorthand",
@@ -336,7 +468,7 @@ const invalidCases: InvalidTestCase[] = [
         x++;
       }
     `,
-    errors: [{ messageId: "cannotModifyExternalVariables" }],
+    errors: [{ messageId: "cannotMutateExternalVariables" }],
   },
   {
     name: "cannot decrement mutable external primitive variables using shorthand",
@@ -346,7 +478,7 @@ const invalidCases: InvalidTestCase[] = [
         x--;
       }
     `,
-    errors: [{ messageId: "cannotModifyExternalVariables" }],
+    errors: [{ messageId: "cannotMutateExternalVariables" }],
   },
   {
     name: "cannot decrement mutable external primitive variables",
@@ -356,7 +488,7 @@ const invalidCases: InvalidTestCase[] = [
         x -= 1;
       }
     `,
-    errors: [{ messageId: "cannotModifyExternalVariables" }],
+    errors: [{ messageId: "cannotMutateExternalVariables" }],
   },
   {
     name: "cannot mutate external reference variables",
@@ -368,7 +500,7 @@ const invalidCases: InvalidTestCase[] = [
     `,
     // ? should these be separate errors?
     errors: [
-      { messageId: "cannotModifyExternalVariables" },
+      { messageId: "cannotMutateExternalVariables" },
       { messageId: "cannotUseExternalMutableVariables" },
     ],
   },
@@ -391,13 +523,13 @@ const invalidCases: InvalidTestCase[] = [
     errors: [{ messageId: "cannotUseExternalMutableVariables" }],
   },
   {
-    name: "cannot modify reference parameters",
+    name: "cannot mutate reference parameters",
     code: `
       function impure(param) {
         param.x = 1;
       }
     `,
-    errors: [{ messageId: "cannotModifyExternalVariables" }],
+    errors: [{ messageId: "cannotMutateFunctionParameters" }],
   },
   {
     name: "cannot use external mutable let variables in single conditions",
@@ -434,8 +566,7 @@ const invalidCases: InvalidTestCase[] = [
         }
       }
     `,
-    // var is not block scoped in this case
-    errors: [{ messageId: "cannotReferenceGlobalContext" }],
+    errors: [{ messageId: "cannotUseExternalMutableVariables" }],
   },
   {
     name: "cannot use external reference variables",
@@ -492,7 +623,7 @@ const invalidCases: InvalidTestCase[] = [
     errors: [{ messageId: "cannotThrowErrors" }],
   },
   {
-    name: "cannot modify instance properties by assignment",
+    name: "cannot mutate instance properties by assignment",
     code: `
       class Foo {
         constructor() {
@@ -500,10 +631,10 @@ const invalidCases: InvalidTestCase[] = [
         }
       }
     `,
-    errors: [{ messageId: "cannotModifyThisContext" }],
+    errors: [{ messageId: "cannotMutateThisContext" }],
   },
   {
-    name: "cannot modify instance properties by object mutation",
+    name: "cannot mutate instance properties by object mutation",
     code: `
       class Foo {
         constructor() {
@@ -511,10 +642,10 @@ const invalidCases: InvalidTestCase[] = [
         }
       }
     `,
-    errors: [{ messageId: "cannotModifyThisContext" }],
+    errors: [{ messageId: "cannotMutateThisContext" }],
   },
   {
-    name: "cannot modify instance properties by incrementing using shorthand",
+    name: "cannot mutate instance properties by incrementing using shorthand",
     code: `
       class Foo {
         method() {
@@ -522,10 +653,10 @@ const invalidCases: InvalidTestCase[] = [
         }
       }
     `,
-    errors: [{ messageId: "cannotModifyThisContext" }],
+    errors: [{ messageId: "cannotMutateThisContext" }],
   },
   {
-    name: "cannot modify instance properties by incrementing",
+    name: "cannot mutate instance properties by incrementing",
     code: `
       class Foo {
         method() {
@@ -533,10 +664,10 @@ const invalidCases: InvalidTestCase[] = [
         }
       }
     `,
-    errors: [{ messageId: "cannotModifyThisContext" }],
+    errors: [{ messageId: "cannotMutateThisContext" }],
   },
   {
-    name: "cannot modify instance properties by decrementing using shorthand",
+    name: "cannot mutate instance properties by decrementing using shorthand",
     code: `
       class Foo {
         method() {
@@ -544,10 +675,10 @@ const invalidCases: InvalidTestCase[] = [
         }
       }
     `,
-    errors: [{ messageId: "cannotModifyThisContext" }],
+    errors: [{ messageId: "cannotMutateThisContext" }],
   },
   {
-    name: "cannot modify instance properties by decrementing",
+    name: "cannot mutate instance properties by decrementing",
     code: `
       class Foo {
         method() {
@@ -555,7 +686,7 @@ const invalidCases: InvalidTestCase[] = [
         }
       }
     `,
-    errors: [{ messageId: "cannotModifyThisContext" }],
+    errors: [{ messageId: "cannotMutateThisContext" }],
   },
   {
     name: "cannot call functions and ignore the return value",
@@ -660,7 +791,7 @@ const invalidCases: InvalidTestCase[] = [
         externalFunc.assign = 1;
       }
     `,
-    errors: [{ messageId: "cannotModifyExternalVariables" }],
+    errors: [{ messageId: "cannotMutateExternalVariables" }],
   },
   {
     name: "cannot assign to const function expression",
@@ -674,9 +805,67 @@ const invalidCases: InvalidTestCase[] = [
       }
     `,
     errors: [
-      { messageId: "cannotModifyExternalVariables" },
+      { messageId: "cannotMutateExternalVariables" },
       { messageId: "cannotUseExternalMutableVariables" },
     ],
+  },
+  {
+    name: "cannot mutate array literal accumulator in reduce (without option)",
+    code: `
+      function func() {
+        return [1,2,3].reduce((acc, val, i) => {
+          acc[i] = val ;
+          return acc;
+        }, {});
+      }
+    `,
+    errors: [{ messageId: "cannotMutateFunctionParameters" }],
+  },
+  {
+    name: "can mutate array variable accumulator in reduce (without option)",
+    code: `
+      function func() {
+        const arr = [1,2,3];
+        return arr.reduce((acc, val) => {
+          acc[val] = val;
+          return acc;
+        }, {});
+      }
+    `,
+    errors: [{ messageId: "cannotMutateFunctionParameters" }],
+  },
+  // todo support typescript
+  // {
+  //   name: "cannot mutate explicitly typed array variable accumulator in reduce (without option)",
+  //   code: `
+  //     function func(arr: number[]) {
+  //       return arr.reduce((acc, val) => {
+  //         acc[val] = val;
+  //         return acc;
+  //       }, {});
+  //     }
+  //   `,
+  //   errors: [{ messageId: "cannotMutateFunctionParameters" }],
+  // },
+  {
+    name: "cannot call external let function references",
+    code: `
+      let externalFunc = () => 1;
+      function func() {
+        return externalFunc();
+      }
+    `,
+    errors: [{ messageId: "cannotUseExternalMutableVariables" }],
+  },
+  {
+    name: "cannot call external var function references",
+    code: `
+      var externalFunc = () => 1;
+      function func() {
+        return externalFunc();
+      }
+    `,
+    errors: [{ messageId: "cannotUseExternalMutableVariables" }],
   },
 ];
 

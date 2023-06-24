@@ -18,12 +18,13 @@ import {
 } from "../utils.pure/TSESTree";
 import {
   getImmediateScope,
-  getResolvedVariable,
+  getVariableInScope,
   variableIsDefinedInScope as variableIsDefinedInFunctionScope,
   variableIsParameter,
   variableIsImmutable,
   thisExpressionIsGlobalWhenUsedInScope,
   variableIsImmutableFunctionReference,
+  variableIsReduceAccumulatorParameter,
 } from "../utils.pure/scope";
 import type { AllowGlobalsValue, PurityRuleContext } from "../utils.pure/types";
 import { getPurityRuleConfig } from "../utils.pure/config";
@@ -33,6 +34,7 @@ export type RuleConfig = {
   allowThrow?: boolean;
   allowIgnoreFunctionCallResult?: boolean;
   allowGlobals?: AllowGlobalsValue;
+  allowMutatingReduceAccumulator?: boolean;
 };
 
 export type Options = [RuleConfig | undefined];
@@ -40,13 +42,14 @@ export type Options = [RuleConfig | undefined];
 export type MessageIds =
   | "moduleCannotHaveSideEffectImports"
   | "cannotReferenceGlobalContext"
-  | "cannotModifyExternalVariables"
+  | "cannotMutateExternalVariables"
   | "cannotUseExternalMutableVariables"
   | "cannotUseImpureFunctions"
   | "cannotThrowErrors"
   | "cannotImportImpureModules"
-  | "cannotModifyThisContext"
-  | "cannotIgnoreFunctionCallResult";
+  | "cannotMutateThisContext"
+  | "cannotIgnoreFunctionCallResult"
+  | "cannotMutateFunctionParameters";
 
 const rule = createRule<Options, MessageIds>({
   name: "purity",
@@ -61,14 +64,15 @@ const rule = createRule<Options, MessageIds>({
       moduleCannotHaveSideEffectImports:
         "A pure module cannot have imports without specifiers, this is likely a side-effect",
       cannotReferenceGlobalContext: "A pure file/function cannot use global context",
-      cannotModifyExternalVariables: "A pure function cannot modify external variables",
+      cannotMutateExternalVariables: "A pure function cannot mutate external variables",
       cannotUseExternalMutableVariables: "A pure function cannot use external mutable variables",
       cannotUseImpureFunctions: "A pure file/function cannot use impure functions",
       cannotImportImpureModules: "Pure modules cannot import impure modules",
       cannotThrowErrors: "A pure file/function cannot throw errors",
-      cannotModifyThisContext: "A pure file/function cannot modify 'this'",
+      cannotMutateThisContext: "A pure file/function cannot mutate 'this'",
       cannotIgnoreFunctionCallResult:
         "A pure file/function cannot ignore function call return values, this is likely a side-effect",
+      cannotMutateFunctionParameters: "A pure function cannot mutate parameters",
     },
     schema: [
       {
@@ -94,6 +98,11 @@ const rule = createRule<Options, MessageIds>({
               },
             ],
           },
+          allowMutatingReduceAccumulator: {
+            type: "boolean",
+            description:
+              "Whether to allow mutating the accumulator in a reduce function, this is not pure but can be good for performance in some cases",
+          },
         } satisfies Record<keyof RuleConfig, JSONSchema4>,
       },
     ],
@@ -114,17 +123,24 @@ const rule = createRule<Options, MessageIds>({
       return {}; // impure modules can do whatever they want
     }
 
+    const {
+      allowGlobals,
+      allowIgnoreFunctionCallResult,
+      allowThrow,
+      allowMutatingReduceAccumulator,
+    } = getPurityRuleConfig(ruleContext.options);
+
+    const context = {
+      sourceCode: ruleContext.getSourceCode(),
+    } as PurityRuleContext;
+
     const nodesWithExistingIssues = new WeakSet<TSESTree.Node>();
     function reportIssue({
       node,
       messageId,
-      data,
     }: {
       node: TSESTree.Node;
       messageId: MessageIds;
-      data: {
-        source: string;
-      };
     }): void {
       if (nodesWithExistingIssues.has(node)) {
         return;
@@ -132,46 +148,31 @@ const rule = createRule<Options, MessageIds>({
 
       // todo this should add all child nodes to the set as well
       nodesWithExistingIssues.add(node);
-      ruleContext.report({
-        node,
-        messageId,
-        data,
-      });
+      ruleContext.report({ node, messageId });
+      // eslint-disable-next-line no-console
+      console.log(
+        `reporting issue "${messageId}" for node:\n`,
+        context.sourceCode.getText(node),
+        "\nin parent:\n",
+        context.sourceCode.getText(node.parent),
+      );
     }
-
-    const { allowGlobals, allowIgnoreFunctionCallResult, allowThrow } = getPurityRuleConfig(
-      ruleContext.options,
-    );
-
-    const context = {
-      sourceCode: ruleContext.getSourceCode(),
-    } as PurityRuleContext;
 
     return {
       Program(node) {
-        context.scopeManager = analyzeScope(node);
+        context.scopeManager = analyzeScope(node, { sourceType: "module" });
       },
       ImportDeclaration(node) {
         if (node.importKind === "type") {
           return; // type imports have no runtime effect and so are pure
         }
         if (node.specifiers.length === 0) {
-          reportIssue({
-            node,
-            messageId: "moduleCannotHaveSideEffectImports",
-            data: { source: context.sourceCode.getText(node.source) },
-          });
+          reportIssue({ node, messageId: "moduleCannotHaveSideEffectImports" });
           return;
         }
         // todo this should not be an issue with type checking
         if (!isPureModulePath(node.source.value)) {
-          reportIssue({
-            node,
-            messageId: "cannotImportImpureModules",
-            data: {
-              source: context.sourceCode.getText(node.source),
-            },
-          });
+          reportIssue({ node, messageId: "cannotImportImpureModules" });
         }
       },
       ThisExpression(node) {
@@ -179,22 +180,18 @@ const rule = createRule<Options, MessageIds>({
         if (thisExpressionIsGlobalWhenUsedInScope(currentScope)) {
           const directGlobalUsageAllowed = allowGlobals === true;
           if (!directGlobalUsageAllowed) {
-            reportIssue({
-              node,
-              messageId: "cannotReferenceGlobalContext",
-              data: { source: context.sourceCode.getText(node.parent) },
-            });
+            reportIssue({ node, messageId: "cannotReferenceGlobalContext" });
             return;
           }
         }
         if (isArrowFunctionExpressionNode(currentScope.block)) {
-          reportIssue({
-            node,
-            messageId: "cannotUseExternalMutableVariables",
-            data: { source: context.sourceCode.getText(node.parent) },
-          });
+          // ? make this more specific to this in arrow functions? or just "this" usage in general?
+          reportIssue({ node, messageId: "cannotUseExternalMutableVariables" });
         }
       },
+      /**
+       * Matches on direct reassignment of variables or mutation of variable references
+       */
       "AssignmentExpression, UpdateExpression": function (
         node: TSESTree.AssignmentExpression | TSESTree.UpdateExpression,
       ) {
@@ -204,7 +201,7 @@ const rule = createRule<Options, MessageIds>({
         if (isIdentifierNode(targetNode)) {
           const currentScope = getImmediateScope({ node, scopeManager: context.scopeManager });
           const assignmentTargetIdentifier = targetNode;
-          const variable = getResolvedVariable({
+          const variable = getVariableInScope({
             node: assignmentTargetIdentifier,
             scope: currentScope,
           });
@@ -214,15 +211,11 @@ const rule = createRule<Options, MessageIds>({
             return; // assignment to a variable in the current scope is fine except for parameters
           }
 
-          reportIssue({
-            node,
-            messageId: "cannotModifyExternalVariables",
-            data: { source: context.sourceCode.getText(node) },
-          });
+          reportIssue({ node, messageId: "cannotMutateExternalVariables" });
           return;
         }
 
-        // is reference variable mutation?
+        // is variable reference mutation?
         if (isMemberExpressionNode(targetNode)) {
           const usage = getUsageData({ node: targetNode, context });
           if (!usage) {
@@ -232,24 +225,30 @@ const rule = createRule<Options, MessageIds>({
           const rootExpressionObject = accessSegmentNodes[0];
 
           if (isThisExpressionNode(rootExpressionObject)) {
-            reportIssue({
-              node,
-              messageId: "cannotModifyThisContext",
-              data: { source: context.sourceCode.getText(node) },
-            });
+            reportIssue({ node, messageId: "cannotMutateThisContext" });
             return;
           }
 
           if (isIdentifierNode(rootExpressionObject)) {
             const currentScope = getImmediateScope({ node, scopeManager: context.scopeManager });
-            const variable = getResolvedVariable({
+            const variable = getVariableInScope({
               node: rootExpressionObject,
               scope: currentScope,
             });
-            if (
-              variableIsDefinedInFunctionScope(variable, currentScope) &&
-              !variableIsParameter(variable)
-            ) {
+
+            if (variableIsParameter(variable)) {
+              if (
+                // todo this should not be an error as the type is primitive and the variable is const
+                allowMutatingReduceAccumulator &&
+                variableIsReduceAccumulatorParameter(variable)
+              ) {
+                return;
+              }
+              reportIssue({ node, messageId: "cannotMutateFunctionParameters" });
+              return;
+            }
+
+            if (variableIsDefinedInFunctionScope(variable, currentScope)) {
               return; // assignment to a reference variable in the current scope is fine except for parameters
             }
 
@@ -257,11 +256,7 @@ const rule = createRule<Options, MessageIds>({
               return;
             }
 
-            reportIssue({
-              node,
-              messageId: "cannotModifyExternalVariables",
-              data: { source: context.sourceCode.getText(node) },
-            });
+            reportIssue({ node, messageId: "cannotMutateExternalVariables" });
           }
         }
       },
@@ -283,6 +278,9 @@ const rule = createRule<Options, MessageIds>({
         "CallExpression > Identifier.callee",
         ":not(MemberExpression) > MemberExpression",
       ].join(",")](node: TSESTree.Identifier | TSESTree.MemberExpression) {
+        console.log("checking identifier usage", context.sourceCode.getText(node.parent));
+
+        debugger;
         const usage = getUsageData({ node, context });
         if (!usage) {
           return;
@@ -290,11 +288,7 @@ const rule = createRule<Options, MessageIds>({
         const { isGlobalUsage, accessSegmentsNames: accessSegments, accessSegmentNodes } = usage;
         if (isGlobalUsage) {
           if (!globalUsageIsAllowed({ accessSegments, allowGlobals })) {
-            reportIssue({
-              node,
-              messageId: "cannotReferenceGlobalContext",
-              data: { source: context.sourceCode.getText(node) },
-            });
+            reportIssue({ node, messageId: "cannotReferenceGlobalContext" });
           }
           // ignore any other issues if the global usage is allowed
           return;
@@ -303,10 +297,14 @@ const rule = createRule<Options, MessageIds>({
         const rootExpressionObject = accessSegmentNodes[0];
         if (isIdentifierNode(rootExpressionObject)) {
           const currentScope = getImmediateScope({ node, scopeManager: context.scopeManager });
-          const variable = getResolvedVariable({
+          const variable = getVariableInScope({
             node: rootExpressionObject,
             scope: currentScope,
           });
+          if (variableIsParameter(variable)) {
+            // using any parameter is fine, even from parent functions
+            return;
+          }
           if (variableIsImmutable(variable)) {
             // using any immutable variable is fine
             return;
@@ -322,7 +320,6 @@ const rule = createRule<Options, MessageIds>({
           reportIssue({
             node: rootExpressionObject,
             messageId: "cannotUseExternalMutableVariables",
-            data: { source: context.sourceCode.getText(node) },
           });
         }
 
@@ -330,11 +327,7 @@ const rule = createRule<Options, MessageIds>({
       },
       ThrowStatement(node) {
         if (!allowThrow) {
-          reportIssue({
-            node,
-            messageId: "cannotThrowErrors",
-            data: { source: context.sourceCode.getText(node) },
-          });
+          reportIssue({ node, messageId: "cannotThrowErrors" });
         }
       },
       /**
@@ -355,11 +348,7 @@ const rule = createRule<Options, MessageIds>({
             return;
           }
         }
-        reportIssue({
-          node,
-          messageId: "cannotIgnoreFunctionCallResult",
-          data: { source: context.sourceCode.getText(node) },
-        });
+        reportIssue({ node, messageId: "cannotIgnoreFunctionCallResult" });
       },
     };
   },

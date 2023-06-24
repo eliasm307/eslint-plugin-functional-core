@@ -1,30 +1,46 @@
-import type { Scope, ScopeManager, Variable } from "@typescript-eslint/scope-manager";
+import type {
+  Scope,
+  ScopeManager,
+  Variable,
+  Definition,
+  ParameterDefinition,
+  VariableDefinition,
+  ModuleScope,
+} from "@typescript-eslint/scope-manager";
 import { DefinitionType, ScopeType } from "@typescript-eslint/scope-manager";
 import type { TSESTree } from "@typescript-eslint/utils";
-
 import {
+  isArrayExpressionNode,
   isArrowFunctionExpressionNode,
+  isCallExpressionNode,
   isFunctionExpressionNode,
   isIdentifierNode,
   isLiteralNode,
+  isMemberExpressionNode,
+  isProgramNode,
   isTemplateLiteralNode,
   isThisExpressionNode,
 } from "./TSESTree";
 
 const nodeToImmediateScopeMap = new WeakMap<TSESTree.Node, Scope>();
 
+function isModuleScope(scope: Scope | undefined): scope is ModuleScope {
+  return scope?.type === ScopeType.module;
+}
+
 /** Gets the immediate scope from a node */
 export function getImmediateScope({
   node,
   scopeManager,
 }: {
-  node: TSESTree.Node | undefined;
+  node: TSESTree.Node;
   scopeManager: ScopeManager;
 }): Scope {
   const visitedNodes = new Set<TSESTree.Node>();
-  while (node) {
+  while (node && !isProgramNode(node)) {
     // eslint-disable-next-line functional-core/purity -- side effect of caching
     visitedNodes.add(node);
+    scopeManager.getDeclaredVariables(node);
     const scope = nodeToImmediateScopeMap.get(node) || scopeManager.acquire(node);
     if (scope) {
       // eslint-disable-next-line functional-core/purity -- side effect of caching
@@ -33,14 +49,108 @@ export function getImmediateScope({
       });
       return scope;
     }
-    node = node.parent;
+    node = node.parent!;
   }
-  // when would this happen?
-  throw new Error("Could not find scope");
+
+  if (scopeManager.isModule()) {
+    const moduleScope = scopeManager.globalScope?.childScopes[0];
+    if (isModuleScope(moduleScope)) {
+      return moduleScope;
+    }
+    throw new Error("Expected module scope to be a module scope");
+  }
+
+  if (!scopeManager.globalScope) {
+    throw new Error("Expected global scope to be defined");
+  }
+
+  return scopeManager.globalScope;
+}
+
+function isParameterDefinition(def: Definition): def is ParameterDefinition {
+  return def.type === DefinitionType.Parameter;
+}
+
+function isVariableDefinition(def: Definition): def is VariableDefinition {
+  return def.type === DefinitionType.Variable;
 }
 
 export function variableIsParameter(variable: Variable | undefined): boolean {
-  return variable?.defs.some((def) => def.type === "Parameter") ?? false;
+  return variable?.defs.some(isParameterDefinition) ?? false;
+}
+
+function isArray({ node, scope }: { node: TSESTree.Node; scope: Scope }): boolean {
+  if (isArrayExpressionNode(node)) {
+    return true;
+  }
+
+  const resolvedVariable = getVariableInScope({ node, scope });
+  if (resolvedVariable) {
+    const definition = resolvedVariable.defs[0];
+
+    // we only look at the direct definition of the variable and dont follow up non-literal assignments
+    // TS should be used to get types from more complex cases
+    const isExplicitArrayVariable =
+      isVariableDefinition(definition) && isArrayExpressionNode(definition.node.init);
+    if (isExplicitArrayVariable) {
+      return true;
+    }
+  }
+
+  // todo check if this is an array using typescript
+
+  return false;
+}
+
+function isArrayReduceCallbackFunctionNode({
+  node,
+  scope,
+}: {
+  node: TSESTree.Node;
+  scope: Scope;
+}): boolean {
+  if (!isArrowFunctionExpressionNode(node) && !isFunctionExpressionNode(node)) {
+    // cant be a callback
+    return false;
+  }
+
+  if (!isCallExpressionNode(node.parent)) {
+    // not a callback
+    return false;
+  }
+
+  if (
+    !isMemberExpressionNode(node.parent.callee) ||
+    !isIdentifierNode(node.parent.callee.property) ||
+    node.parent.callee.property.name !== "reduce" ||
+    !isArray({ scope, node: node.parent.callee.object })
+  ) {
+    // not a reduce call
+    return false;
+  }
+
+  return true;
+}
+
+export function variableIsReduceAccumulatorParameter(variable: Variable | undefined): boolean {
+  if (!variable) {
+    return false;
+  }
+  const parameterDefinition = variable.defs.find(isParameterDefinition);
+  if (!parameterDefinition) {
+    return false;
+  }
+
+  const functionNode = parameterDefinition.node;
+  const parameterNode = parameterDefinition.name;
+
+  const isFirstParameter = functionNode?.params[0] === parameterNode;
+  if (!isFirstParameter) {
+    // this is not the first parameter so it cannot be the reduce accumulator
+    return false;
+  }
+
+  return isArrayReduceCallbackFunctionNode({ scope: variable.scope, node: functionNode });
 }
 
 export function variableIsDefinedInScope(variable: Variable | undefined, scope: Scope): boolean {
@@ -57,7 +167,7 @@ export function variableIsDefinedInScope(variable: Variable | undefined, scope: 
   return variableIsDefinedInScope(variable, scope.upper);
 }
 
-export function getResolvedVariable({
+export function getVariableInScope({
   node,
   scope,
 }: {
@@ -75,8 +185,16 @@ export function getResolvedVariable({
     return reference.resolved;
   }
 
-  // if the variable cannot be resolved, it is likely a global variable, fallback to getting the scope variable
-  return scope.variables.find((variable) => variable.name === node.name);
+  // if the variable is not used in the scope then look for it in parent scopes
+  while (scope) {
+    const foundVariable = scope.variables.find((variable) => variable.name === node.name);
+    if (foundVariable) {
+      return foundVariable;
+    }
+
+    scope = scope.upper!;
+  }
+  return undefined;
 }
 
 export function variableIsImmutable(variable: Variable | undefined): boolean {
@@ -134,7 +252,7 @@ export function variableIsImmutableFunctionReference(variable: Variable | undefi
 }
 
 export function isGlobalVariable(variable: Variable | undefined): boolean {
-  return !variable; // globals wont be resolved to Scope variables
+  return !variable || variable.scope.type === ScopeType.global;
 }
 
 function isValidThisScope(scope: Scope): boolean {
@@ -164,5 +282,6 @@ export function isGlobalScopeUsage({
   if (isThisExpressionNode(node)) {
     return thisExpressionIsGlobalWhenUsedInScope(scope);
   }
-  return isGlobalVariable(getResolvedVariable({ node, scope }));
+  const variable = getVariableInScope({ node, scope });
+  return isGlobalVariable(variable);
 }

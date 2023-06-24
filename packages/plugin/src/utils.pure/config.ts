@@ -36,10 +36,15 @@ const ALLOW_GLOBALS_DEFAULT = {
   module: true,
   describe: true,
   it: true,
-  // @ts-expect-error [issue finding global type?]
-  expect: true,
   jest: true,
   console: true,
+  undefined: true,
+  NaN: true,
+  Infinity: true,
+
+  // global testing utils, allow
+  // @ts-expect-error [issue finding global type?]
+  expect: true,
 
   // impure
   // false by default but can be overridden
@@ -206,5 +211,6 @@ export function getPurityRuleConfig(options: Options): RuleConfig {
     allowGlobals: getAllowGlobalsValueWithDefaults(customConfig?.allowGlobals),
     allowIgnoreFunctionCallResult: customConfig?.allowIgnoreFunctionCallResult ?? false,
     allowThrow: customConfig?.allowThrow ?? false,
-  };
+    allowMutatingReduceAccumulator: customConfig?.allowMutatingReduceAccumulator ?? false,
+  } satisfies Required<RuleConfig>;
 }

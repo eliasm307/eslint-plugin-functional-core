@@ -11,19 +11,13 @@ function getMemberExpressionChainNodes(node: TSESTree.Node): TSESTree.Node[] {
   return [node];
 }
 
-export default function getUsageData({
+function getAccessSegmentNodes({
   node,
-  context: { scopeManager, sourceCode },
+  sourceCode,
 }: {
-  node: TSESTree.MemberExpression | TSESTree.Identifier | TSESTree.ThisExpression;
-  context: PurityRuleContext;
-}): {
-  accessSegmentsNames: string[];
-  accessSegmentNodes: (TSESTree.Identifier | TSESTree.ThisExpression)[];
-  isGlobalUsage: boolean;
-  immediateScope: Scope;
-  rootNode: TSESTree.Identifier | TSESTree.ThisExpression;
-} | void {
+  node: TSESTree.Node;
+  sourceCode: PurityRuleContext["sourceCode"];
+}): (TSESTree.Identifier | TSESTree.ThisExpression)[] | undefined {
   let accessSegmentNodes: (TSESTree.Identifier | TSESTree.ThisExpression)[] = [];
   if (isIdentifierNode(node) || isThisExpressionNode(node)) {
     accessSegmentNodes = [node];
@@ -47,6 +41,29 @@ export default function getUsageData({
 
   if (accessSegmentNodes.length === 0) {
     throw new Error(`Unexpected node type: ${node.type}\n\n${sourceCode.getText(node)}`);
+  }
+
+  return accessSegmentNodes;
+}
+
+export default function getUsageData({
+  node,
+  context: { scopeManager, sourceCode },
+}: {
+  node: TSESTree.MemberExpression | TSESTree.Identifier | TSESTree.ThisExpression;
+  context: PurityRuleContext;
+}):
+  | {
+      accessSegmentsNames: string[];
+      accessSegmentNodes: (TSESTree.Identifier | TSESTree.ThisExpression)[];
+      isGlobalUsage: boolean;
+      immediateScope: Scope;
+      rootNode: TSESTree.Identifier | TSESTree.ThisExpression;
+    }
+  | undefined {
+  const accessSegmentNodes = getAccessSegmentNodes({ node, sourceCode });
+  if (!accessSegmentNodes) {
+    return;
   }
 
   const immediateScope = getImmediateScope({ node, scopeManager });
