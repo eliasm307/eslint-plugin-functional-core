@@ -1,7 +1,11 @@
 {
   "name": "eslint-plugin-functional-core",
   "version": "0.11.0",
-  "description": "TBC",
+  "description": "An Eslint plugin to help enforce functional principles and increase the 'functional core' of your code base.",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/eliasm307/eslint-plugin-functional-core.git"
+  },
   "license": "MIT",
   "author": "Elias Mangoro",
   "main": "./dist/index.js",
@@ -10,7 +14,9 @@
   "keywords": [
     "eslint",
     "eslintplugin",
-    "eslint-plugin"
+    "eslint-plugin",
+    "functional",
+    "functional-core"
   ],
   "files": [
     "dist",
