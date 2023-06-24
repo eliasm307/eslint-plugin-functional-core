@@ -34,16 +34,23 @@ const ALLOW_GLOBALS_DEFAULT = {
   unescape: true,
   require: true,
   module: true,
-  describe: true,
-  it: true,
-  jest: true,
   console: true,
   undefined: true,
   NaN: true,
   Infinity: true,
 
-  // global testing utils, allow
-  // @ts-expect-error [issue finding global type?]
+  // global testing utils, allowed for testing frameworks
+  describe: true,
+  it: true,
+  jest: true,
+  afterEach: true,
+  beforeEach: true,
+  afterAll: true,
+  beforeAll: true,
+  test: true,
+  // @ts-expect-error
+  before: true,
+  after: true,
   expect: true,
 
   // impure
