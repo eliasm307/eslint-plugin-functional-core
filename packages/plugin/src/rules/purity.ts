@@ -148,14 +148,14 @@ const rule = createRule<Options, MessageIds>({
 
       // todo this should add all child nodes to the set as well
       nodesWithExistingIssues.add(node);
-      ruleContext.report({ node, messageId });
-      // eslint-disable-next-line no-console
-      console.log(
-        `reporting issue "${messageId}" for node:\n`,
-        context.sourceCode.getText(node),
-        "\nin parent:\n",
-        context.sourceCode.getText(node.parent),
-      );
+      ruleContext.report({
+        node,
+        messageId,
+        data: {
+          nodeText: context.sourceCode.getText(node),
+          nodeParentText: context.sourceCode.getText(node.parent),
+        },
+      });
     }
 
     return {
@@ -278,9 +278,6 @@ const rule = createRule<Options, MessageIds>({
         "CallExpression > Identifier.callee",
         ":not(MemberExpression) > MemberExpression",
       ].join(",")](node: TSESTree.Identifier | TSESTree.MemberExpression) {
-        console.log("checking identifier usage", context.sourceCode.getText(node.parent));
-
-        debugger;
         const usage = getUsageData({ node, context });
         if (!usage) {
           return;
