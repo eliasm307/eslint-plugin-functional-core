@@ -174,6 +174,38 @@ const ALLOW_GLOBALS_DEFAULT = {
     // impure
     prototype: false, // todo define whats allowed from instances
   } satisfies MemberBooleanMap<BigIntConstructor>,
+  Date: {
+    // pure
+    parse: true,
+
+    // impure
+    now: false,
+    prototype: false, // todo define whats allowed from instances
+    UTC: false,
+  } satisfies MemberBooleanMap<DateConstructor>,
+  RegExp: {}, // direct usage allowed but static members are not
+  Function: {
+    // impure
+    prototype: false, // todo define whats allowed from instances
+  } satisfies MemberBooleanMap<FunctionConstructor>,
+  Set: {
+    prototype: false, // todo define whats allowed from instances
+  } satisfies MemberBooleanMap<SetConstructor>,
+  Map: {
+    prototype: false, // todo define whats allowed from instances
+  } satisfies MemberBooleanMap<MapConstructor>,
+  WeakSet: {
+    prototype: false, // todo define whats allowed from instances
+  } satisfies MemberBooleanMap<WeakSetConstructor>,
+  WeakMap: {
+    prototype: false, // todo define whats allowed from instances
+  } satisfies MemberBooleanMap<WeakMapConstructor>,
+  JSON: {
+    // pure
+    parse: true,
+    stringify: true,
+  } satisfies MemberBooleanMap<typeof JSON>,
+  Promise: false, // all async code is impure?
 } satisfies Partial<MemberBooleanMap<typeof globalThis>>;
 
 export function applyDeepOverrides(

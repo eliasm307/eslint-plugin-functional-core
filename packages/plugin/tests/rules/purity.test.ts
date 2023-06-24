@@ -12,7 +12,6 @@ import { createRuleTester, testCaseInPureFileByDefault } from "../../src/utils.p
 // todo account for types of identifiers
 // todo add option to disallow let and var, everything has to be const
 // todo make strict config
-// todo add tests for builtin methods for Window, Array, Object, String, Number, Symbol, Math, Date, RegExp, process, console, Set, Map, WeakSet, WeakMap, JSON, Promise,
 
 const validCases: ValidTestCase[] = [
   {
