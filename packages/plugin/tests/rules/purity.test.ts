@@ -8,10 +8,8 @@ import { createRuleTester, testCaseInPureFileByDefault } from "../../src/utils.p
 // todo account for object destructuring
 // todo account for array destructuring
 // todo account for array spread
-// todo account for function spread
 // todo account for types of identifiers
 // todo add option to disallow let and var, everything has to be const
-// todo make strict config
 
 const validCases: ValidTestCase[] = [
   {
@@ -359,6 +357,14 @@ const validCases: ValidTestCase[] = [
           case "null":
             return null;
         }
+      }
+    `,
+  },
+  {
+    name: "can use spread arguments",
+    code: `
+      function x(...args) {
+        return (...args) => args;
       }
     `,
   },
