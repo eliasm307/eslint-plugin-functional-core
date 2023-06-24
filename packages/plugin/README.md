@@ -69,9 +69,9 @@ Then configure the rules you want to use under the rules section.
 ✅ Set in the `recommended` configuration.\
 🔒 Set in the `strict` configuration.
 
-| Name                           | Description                                                                                               | 💼  | ⚠️  |
-| :----------------------------- | :-------------------------------------------------------------------------------------------------------- | :-- | :-- |
-| [purity](docs/rules/purity.md) | This rule warns about aspects of code that may be impure, and offers options to adjust how strict this is | 🔒  | ✅  |
+| Name                           | Description                                                                                               | 💼 | ⚠️ |
+| :----------------------------- | :-------------------------------------------------------------------------------------------------------- | :- | :- |
+| [purity](docs/rules/purity.md) | This rule warns about aspects of code that may be impure, and offers options to adjust how strict this is | 🔒 | ✅  |
 
 <!-- end auto-generated rules list -->
 
