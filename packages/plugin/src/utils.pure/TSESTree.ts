@@ -1,6 +1,5 @@
-// eslint-disable-next-line functional-core/purity
 import type { TSESTree } from "@typescript-eslint/utils";
-// eslint-disable-next-line functional-core/purity
+
 import { AST_NODE_TYPES, ASTUtils } from "@typescript-eslint/utils";
 
 export const isFunctionNode = ASTUtils.isFunction;

@@ -1,6 +1,8 @@
+import type { TSESTree } from "@typescript-eslint/utils";
 import { ESLintUtils } from "@typescript-eslint/utils";
 import path from "path";
 import type { AllowGlobalsValue } from "./types";
+import { isCallExpressionNode } from "./TSESTree";
 
 export const createRule = ESLintUtils.RuleCreator(
   (name) =>
@@ -47,7 +49,7 @@ export function createPurePathPredicate({
   // todo add tests around this, eg for builtin module handling
   return (inputPath: string): boolean => {
     // todo this should not be an error, need to use TS to know filename is not mutable
-    // eslint-disable-next-line functional-core/purity
+
     inputPath = getNormalisedAbsolutePath({
       pathToResolve: inputPath,
       fromAbsoluteAbsoluteFilePath: filename,
@@ -63,15 +65,29 @@ function isGlobalAlias(alias: string): boolean {
 }
 
 export function globalUsageIsAllowed({
-  accessSegments,
+  accessSegmentsNames: accessSegments,
   allowGlobals,
+  node,
 }: {
-  accessSegments: string[];
+  accessSegmentsNames: string[];
   allowGlobals: AllowGlobalsValue | undefined;
+  node: TSESTree.Identifier | TSESTree.MemberExpression;
 }): boolean {
   if (isGlobalAlias(accessSegments[0])) {
     // ignore global aliases
     accessSegments = accessSegments.slice(1);
+  }
+  // some global namespaces can be called as functions
+  if (isCallExpressionNode(node.parent)) {
+    const isNamespaceCallExpression = accessSegments.length === 1;
+    if (isNamespaceCallExpression) {
+      if (accessSegments[0] === "Date" && !node.parent.arguments.length) {
+        // Date without arguments returns the current date and is not pure
+        // however with arguments it returns a specific date so can be pure
+        return false;
+      }
+      accessSegments = [...accessSegments, "{{AsFunction}}"];
+    }
   }
 
   // check if global scope has general value

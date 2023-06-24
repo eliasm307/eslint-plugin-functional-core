@@ -3,11 +3,6 @@ import rule from "../../src/rules/purity";
 import type { InvalidTestCase, ValidTestCase } from "../../src/utils.pure/tests";
 import { createRuleTester, testCaseInPureFileByDefault } from "../../src/utils.pure/tests";
 
-// todo account for computed properties
-// todo account for object spread
-// todo account for object destructuring
-// todo account for array destructuring
-// todo account for array spread
 // todo account for types of identifiers
 // todo add option to disallow let and var, everything has to be const
 
@@ -40,6 +35,24 @@ const validCases: ValidTestCase[] = [
     `,
   },
   {
+    name: "can mutate internal reference variables using literal computed properties",
+    code: `
+      function foo(n) {
+        const x = {};
+        x["foo"] = 1;
+      }
+    `,
+  },
+  {
+    name: "can mutate internal reference variables using computed properties",
+    code: `
+      function foo(n) {
+        const x = {};
+        x[n] = 1;
+      }
+    `,
+  },
+  {
     name: "can throw errors (with option flag)",
     code: `
       function func(shouldBeThrown) {
@@ -51,16 +64,61 @@ const validCases: ValidTestCase[] = [
     options: [{ allowThrow: true }],
   },
   {
-    name: "can use pure Math methods (with option)",
+    name: "can use pure global namespace methods (with option)",
     code: `
       function method() {
-        return Math.sqrt(4);
+        return SomeGlobal.methodA(4);
       }
     `,
-    options: [{ allowGlobals: { Math: { sqrt: true } } }],
+    options: [{ allowGlobals: { SomeGlobal: { methodA: true } } }],
   },
   {
-    name: "functions can explicit return arguments",
+    name: "can use pure global namespace methods using literal computed property (with option)",
+    code: `
+      function method() {
+        return SomeGlobal["methodA"](4);
+      }
+    `,
+    options: [{ allowGlobals: { SomeGlobal: { methodA: true } } }],
+  },
+  {
+    name: "can use global namespace methods using computed property if the entire namespace is pure (with option)",
+    code: `
+      function method(n) {
+        return SomeGlobal[n](4);
+      }
+    `,
+    options: [{ allowGlobals: { SomeGlobal: true } }],
+  },
+  {
+    name: "can call global namespace if it is fully pure (with option)",
+    code: `
+      function method(n) {
+        return SomeGlobal()
+      }
+    `,
+    options: [{ allowGlobals: { SomeGlobal: true } }],
+  },
+  {
+    name: "can call global namespace if it is partially pure (with option)",
+    code: `
+      function method(n) {
+        return SomeGlobal()
+      }
+    `,
+    options: [{ allowGlobals: { SomeGlobal: { "{{AsFunction}}": true } } }],
+  },
+  {
+    name: "can call Date() with arguments if it is marked as globally pure",
+    code: `
+      function method(n) {
+        return Date(n);
+      }
+    `,
+    options: [{ allowGlobals: { Date: { "{{AsFunction}}": true } } }],
+  },
+  {
+    name: "functions can explicit return parameters",
     code: `
       const foo2 = [].map((val) => {
         return val;
@@ -68,8 +126,26 @@ const validCases: ValidTestCase[] = [
     `,
   },
   {
-    name: "functions can implicit return arguments",
+    name: "functions can explicit return parent function parameters",
+    code: `
+      function foo(p) {
+        return () => {
+          return p;
+        }
+      }
+    `,
+  },
+  {
+    name: "functions can implicit return parameters",
     code: `const foo = [].map((val) => val);`,
+  },
+  {
+    name: "functions can implicit return parent parameters",
+    code: `
+      function foo(p) {
+        return () => p;
+      }
+    `,
   },
   {
     name: "can mutate arrays defined in same scope",
@@ -258,6 +334,22 @@ const validCases: ValidTestCase[] = [
     code: `
       function func(param) {
         return param.method();
+      }
+    `,
+  },
+  {
+    name: "can call parameter methods using literal computed property",
+    code: `
+      function func(param) {
+        return param["foo"]();
+      }
+    `,
+  },
+  {
+    name: "can call parameter methods using computed property",
+    code: `
+      function func(param, key) {
+        return param[key]();
       }
     `,
   },
@@ -549,6 +641,24 @@ const invalidCases: InvalidTestCase[] = [
     errors: [{ messageId: "cannotMutateFunctionParameters" }],
   },
   {
+    name: "cannot mutate reference parameters using literal computed properties",
+    code: `
+      function impure(param) {
+        param["x"] = 1;
+      }
+    `,
+    errors: [{ messageId: "cannotMutateFunctionParameters" }],
+  },
+  {
+    name: "cannot mutate reference parameters using computed properties",
+    code: `
+      function impure(param, n) {
+        param[n] = 1;
+      }
+    `,
+    errors: [{ messageId: "cannotMutateFunctionParameters" }],
+  },
+  {
     name: "cannot use external mutable let variables in single conditions",
     code: `
       let x = 1;
@@ -787,14 +897,25 @@ const invalidCases: InvalidTestCase[] = [
   {
     name: "cannot call functions from a mutable references",
     code: `
-      let externalFunc = () => null;
-
       const ref = {
-        externalFunc,
+        externalFunc: () => null
       };
 
       function func() {
         return ref.externalFunc();
+      }
+    `,
+    errors: [{ messageId: "cannotUseExternalMutableVariables" }],
+  },
+  {
+    name: "cannot call functions from a mutable references using literal computed property",
+    code: `
+      const ref = {
+        externalFunc: () => null
+      };
+
+      function func() {
+        return ref["externalFunc"]();
       }
     `,
     errors: [{ messageId: "cannotUseExternalMutableVariables" }],
@@ -880,6 +1001,78 @@ const invalidCases: InvalidTestCase[] = [
       var externalFunc = () => 1;
       function func() {
         return externalFunc();
+      }
+    `,
+    errors: [{ messageId: "cannotUseExternalMutableVariables" }],
+  },
+  {
+    name: "cannot use global namespace methods using computed property if the entire namespace is not fully pure (with option)",
+    code: `
+      function method(n) {
+        return SomeGlobal[n](4);
+      }
+    `,
+    options: [{ allowGlobals: { SomeGlobal: { sqrt: true } } }],
+    errors: [{ messageId: "cannotReferenceGlobalContext" }],
+  },
+  {
+    name: "cannot use global namespace methods using computed property if the entire namespace is not pure (with option)",
+    code: `
+      function method(n) {
+        return SomeGlobal[n](4);
+      }
+    `,
+    options: [{ allowGlobals: { SomeGlobal: false } }],
+    errors: [{ messageId: "cannotReferenceGlobalContext" }],
+  },
+  {
+    name: "cannot mutate global namespace even if it is pure (with option)",
+    code: `
+      function method(n) {
+        SomeGlobal.newMethod = () => null;
+      }
+    `,
+    options: [{ allowGlobals: { SomeGlobal: true } }],
+    errors: [{ messageId: "cannotMutateExternalVariables" }],
+  },
+  {
+    name: "cannot call global namespace (without option)",
+    code: `
+      function method(n) {
+        return SomeGlobal()
+      }
+    `,
+    options: [{ allowGlobals: { SomeGlobal: { foo: true } } }],
+    errors: [{ messageId: "cannotReferenceGlobalContext" }],
+  },
+  {
+    name: "cannot call Date() with arguments if it is not marked as globally pure",
+    code: `
+      function method(n) {
+        return Date(n);
+      }
+    `,
+    options: [{ allowGlobals: { Date: { parse: true } } }],
+    errors: [{ messageId: "cannotReferenceGlobalContext" }],
+  },
+  {
+    name: "cannot call Date() without arguments even if it is marked as globally pure",
+    code: `
+      function method(n) {
+        return Date();
+      }
+    `,
+    options: [{ allowGlobals: { Date: { "{{AsFunction}}": true } } }],
+    errors: [{ messageId: "cannotReferenceGlobalContext" }],
+  },
+  {
+    name: "cannot call methods of external reference variable",
+    code: `
+      const context = {
+        getText: () => null
+      };
+      function getNodeText(node) {
+        return context.getText(node);
       }
     `,
     errors: [{ messageId: "cannotUseExternalMutableVariables" }],

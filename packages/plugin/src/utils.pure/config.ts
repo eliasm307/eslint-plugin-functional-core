@@ -19,8 +19,11 @@ type StringOnly<T> = T extends string ? T : never;
 
 type MemberBooleanMap<T extends object> = {
   [K in keyof T as StringOnly<keyof T>]: AllowGlobalsValue;
+} & {
+  "{{AsFunction}}"?: AllowGlobalsValue;
 };
 
+// todo document that these are the defaults (add to readme?)
 const ALLOW_GLOBALS_DEFAULT = {
   // pure
   decodeURI: true,
@@ -137,6 +140,8 @@ const ALLOW_GLOBALS_DEFAULT = {
   } satisfies MemberBooleanMap<typeof Object>,
   Array: {
     // pure
+    // todo document that this allows calling global namespaces to be pure, but only for global namespaces
+    "{{AsFunction}}": true,
     from: true,
     isArray: true,
     of: true,
@@ -146,6 +151,7 @@ const ALLOW_GLOBALS_DEFAULT = {
   } satisfies MemberBooleanMap<ArrayConstructor>,
   String: {
     // pure
+    "{{AsFunction}}": true,
     fromCharCode: true,
     fromCodePoint: true,
     raw: true,
@@ -155,6 +161,7 @@ const ALLOW_GLOBALS_DEFAULT = {
   } satisfies MemberBooleanMap<StringConstructor>,
   Number: {
     // pure
+    "{{AsFunction}}": true,
     isFinite: true,
     isInteger: true,
     isNaN: true,
@@ -175,6 +182,7 @@ const ALLOW_GLOBALS_DEFAULT = {
   } satisfies MemberBooleanMap<NumberConstructor>,
   BigInt: {
     // pure
+    "{{AsFunction}}": true,
     asIntN: true,
     asUintN: true,
 
@@ -186,11 +194,15 @@ const ALLOW_GLOBALS_DEFAULT = {
     parse: true,
 
     // impure
+    "{{AsFunction}}": false, // not pure if called without arguments
     now: false,
     prototype: false, // todo define whats allowed from instances
     UTC: false,
   } satisfies MemberBooleanMap<DateConstructor>,
-  RegExp: {}, // direct usage allowed but static members are not
+  RegExp: {
+    // direct usage allowed but static members are not
+    "{{AsFunction}}": true,
+  },
   Function: {
     // impure
     prototype: false, // todo define whats allowed from instances

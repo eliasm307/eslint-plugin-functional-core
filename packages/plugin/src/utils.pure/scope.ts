@@ -197,7 +197,8 @@ export function getVariableInScope({
   return undefined;
 }
 
-export function variableIsImmutable(variable: Variable | undefined): boolean {
+/** Ie the variable value can be re-assigned or mutated */
+export function variableValueIsImmutable(variable: Variable | undefined): boolean {
   const definition = variable?.defs[0];
   if (!definition) {
     return false; // global variable, assume mutable
@@ -211,6 +212,7 @@ export function variableIsImmutable(variable: Variable | undefined): boolean {
     // todo also use the type checker to determine if the variable is mutable
     const isPrimitiveValue =
       isLiteralNode(definition.node?.init) ||
+      // todo remove these conditions, there is a separate check for immutable references
       isTemplateLiteralNode(definition.node?.init) ||
       isArrowFunctionExpressionNode(definition.node?.init);
     return isPrimitiveValue && definition.parent?.kind === "const";
@@ -230,7 +232,8 @@ const IMMUTABLE_FUNCTION_DEFINITION_TYPES = [
   DefinitionType.FunctionName,
 ];
 
-export function variableIsImmutableFunctionReference(variable: Variable | undefined): boolean {
+/** Ie the variable cannot be re-assigned */
+export function variableReferenceCannotBeReassigned(variable: Variable | undefined): boolean {
   const definition = variable?.defs[0];
   if (!definition) {
     return false; // global variable, assume mutable

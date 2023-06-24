@@ -1,6 +1,11 @@
 import type { TSESTree } from "@typescript-eslint/utils";
 import type { Scope } from "@typescript-eslint/scope-manager";
-import { isMemberExpressionNode, isIdentifierNode, isThisExpressionNode } from "./TSESTree";
+import {
+  isMemberExpressionNode,
+  isIdentifierNode,
+  isThisExpressionNode,
+  isLiteralNode,
+} from "./TSESTree";
 import { getImmediateScope, isGlobalScopeUsage } from "./scope";
 import type { PurityRuleContext } from "./types";
 
@@ -11,14 +16,16 @@ function getMemberExpressionChainNodes(node: TSESTree.Node): TSESTree.Node[] {
   return [node];
 }
 
+type AccessSegmentNode = TSESTree.Identifier | TSESTree.ThisExpression | TSESTree.Literal;
+
 function getAccessSegmentNodes({
   node,
   sourceCode,
 }: {
   node: TSESTree.Node;
   sourceCode: PurityRuleContext["sourceCode"];
-}): (TSESTree.Identifier | TSESTree.ThisExpression)[] | undefined {
-  let accessSegmentNodes: (TSESTree.Identifier | TSESTree.ThisExpression)[] = [];
+}): AccessSegmentNode[] | undefined {
+  let accessSegmentNodes: AccessSegmentNode[] = [];
   if (isIdentifierNode(node) || isThisExpressionNode(node)) {
     accessSegmentNodes = [node];
   } else if (isMemberExpressionNode(node)) {
@@ -28,7 +35,11 @@ function getAccessSegmentNodes({
     }
     accessSegmentNodes = [];
     for (const chainNode of getMemberExpressionChainNodes(node)) {
-      if (!isIdentifierNode(chainNode) && !isThisExpressionNode(chainNode)) {
+      if (
+        !isIdentifierNode(chainNode) &&
+        !isThisExpressionNode(chainNode) &&
+        !isLiteralNode(chainNode)
+      ) {
         return; // unsupported member expression format so we can't determine the usage
       }
       accessSegmentNodes.push(chainNode);
@@ -46,6 +57,16 @@ function getAccessSegmentNodes({
   return accessSegmentNodes;
 }
 
+function nodeToString(segmentNode: AccessSegmentNode): string {
+  if (isThisExpressionNode(segmentNode)) {
+    return "this";
+  }
+  if (isLiteralNode(segmentNode)) {
+    return String(segmentNode.value);
+  }
+  return segmentNode.name;
+}
+
 export default function getUsageData({
   node,
   context: { scopeManager, sourceCode },
@@ -55,26 +76,30 @@ export default function getUsageData({
 }):
   | {
       accessSegmentsNames: string[];
-      accessSegmentNodes: (TSESTree.Identifier | TSESTree.ThisExpression)[];
+      accessSegmentNodes: AccessSegmentNode[];
       isGlobalUsage: boolean;
       immediateScope: Scope;
-      rootNode: TSESTree.Identifier | TSESTree.ThisExpression;
+      rootAccessNode: TSESTree.Identifier | TSESTree.ThisExpression;
     }
   | undefined {
   const accessSegmentNodes = getAccessSegmentNodes({ node, sourceCode });
   if (!accessSegmentNodes) {
+    // access format not supported
+    return;
+  }
+
+  const rootNode = accessSegmentNodes[0];
+  if (isLiteralNode(rootNode)) {
+    // ignore literal usage
     return;
   }
 
   const immediateScope = getImmediateScope({ node, scopeManager });
-  const rootNode = accessSegmentNodes[0];
   return {
-    accessSegmentsNames: accessSegmentNodes.map((segmentNode) => {
-      return isThisExpressionNode(segmentNode) ? "this" : segmentNode.name;
-    }),
     accessSegmentNodes,
+    accessSegmentsNames: accessSegmentNodes.map(nodeToString),
     isGlobalUsage: isGlobalScopeUsage({ node: rootNode, scope: immediateScope }),
     immediateScope,
-    rootNode,
+    rootAccessNode: rootNode,
   };
 }

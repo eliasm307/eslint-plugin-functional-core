@@ -21,9 +21,9 @@ import {
   getVariableInScope,
   variableIsDefinedInScope as variableIsDefinedInFunctionScope,
   variableIsParameter,
-  variableIsImmutable,
+  variableValueIsImmutable,
   thisExpressionIsGlobalWhenUsedInScope,
-  variableIsImmutableFunctionReference,
+  variableReferenceCannotBeReassigned,
   variableIsReduceAccumulatorParameter,
 } from "../utils.pure/scope";
 import type { AllowGlobalsValue, PurityRuleContext } from "../utils.pure/types";
@@ -152,8 +152,8 @@ const rule = createRule<Options, MessageIds>({
         node,
         messageId,
         data: {
-          nodeText: context.sourceCode.getText(node),
-          nodeParentText: context.sourceCode.getText(node.parent),
+          nodeText: getNodeText(node),
+          nodeParentText: getNodeText(node.parent),
         },
       });
     }
@@ -167,8 +167,18 @@ const rule = createRule<Options, MessageIds>({
       return getImmediateScope({ node, scopeManager: context.scopeManager });
     }
 
-    function globalUsageIsAllowedFor(accessSegments: string[]): boolean {
-      return globalUsageIsAllowed({ accessSegments, allowGlobals });
+    function globalUsageIsAllowedFor({
+      accessSegmentsNames,
+      node,
+    }: {
+      accessSegmentsNames: string[];
+      node: TSESTree.Identifier | TSESTree.MemberExpression;
+    }): boolean {
+      return globalUsageIsAllowed({ accessSegmentsNames, node, allowGlobals });
+    }
+
+    function getNodeText(node: TSESTree.Node | undefined) {
+      return context.sourceCode.getText(node);
     }
 
     return {
@@ -234,18 +244,21 @@ const rule = createRule<Options, MessageIds>({
           if (!usage) {
             return; // unsupported member expression format so we can't determine the usage
           }
-          const { accessSegmentNodes, accessSegmentsNames: accessSegments, isGlobalUsage } = usage;
-          const rootExpressionObject = accessSegmentNodes[0];
 
-          if (isThisExpressionNode(rootExpressionObject)) {
+          const { isGlobalUsage, accessSegmentsNames, rootAccessNode } = usage;
+          if (isGlobalUsage && accessSegmentsNames[0] === "module") {
+            return; // module is a special global that can be mutated
+          }
+
+          if (isThisExpressionNode(rootAccessNode)) {
             reportIssue({ node, messageId: "cannotMutateThisContext" });
             return;
           }
 
-          if (isIdentifierNode(rootExpressionObject)) {
+          if (isIdentifierNode(rootAccessNode)) {
             const currentScope = getImmediateScopeFor(node);
             const variable = getVariableInScope({
-              node: rootExpressionObject,
+              node: rootAccessNode,
               scope: currentScope,
             });
 
@@ -263,10 +276,6 @@ const rule = createRule<Options, MessageIds>({
 
             if (variableIsDefinedInFunctionScope(variable, currentScope)) {
               return; // assignment to a reference variable in the current scope is fine except for parameters
-            }
-
-            if (isGlobalUsage && globalUsageIsAllowedFor(accessSegments)) {
-              return;
             }
 
             reportIssue({ node, messageId: "cannotMutateExternalVariables" });
@@ -295,9 +304,10 @@ const rule = createRule<Options, MessageIds>({
         if (!usage) {
           return;
         }
-        const { isGlobalUsage, accessSegmentsNames: accessSegments, accessSegmentNodes } = usage;
+        const { isGlobalUsage, accessSegmentsNames, accessSegmentNodes } = usage;
+        const isCallExpression = isCallExpressionNode(node.parent);
         if (isGlobalUsage) {
-          if (!globalUsageIsAllowedFor(accessSegments)) {
+          if (!globalUsageIsAllowedFor({ accessSegmentsNames, node })) {
             reportIssue({ node, messageId: "cannotReferenceGlobalContext" });
           }
           // ignore any other issues if the global usage is allowed
@@ -315,11 +325,12 @@ const rule = createRule<Options, MessageIds>({
             // using any parameter is fine, even from parent functions
             return;
           }
-          if (variableIsImmutable(variable)) {
-            // using any immutable variable is fine
+          if (variableValueIsImmutable(variable)) {
+            // using any immutable value variables is fine
             return;
           }
-          if (isCallExpressionNode(node.parent) && variableIsImmutableFunctionReference(variable)) {
+          const isDirectFunctionVariableCall = isCallExpression && accessSegmentNodes.length === 1;
+          if (isDirectFunctionVariableCall && variableReferenceCannotBeReassigned(variable)) {
             // functions can be immutable regarding being called as functions
             // however they can still be mutated as objects, so the mutability is conditional
             return;
@@ -353,8 +364,11 @@ const rule = createRule<Options, MessageIds>({
           if (!usage) {
             return;
           }
-          const { isGlobalUsage, accessSegmentsNames: accessSegments } = usage;
-          if (isGlobalUsage && globalUsageIsAllowedFor(accessSegments)) {
+          const { isGlobalUsage, accessSegmentsNames } = usage;
+          if (
+            isGlobalUsage &&
+            globalUsageIsAllowedFor({ accessSegmentsNames, node: node.callee })
+          ) {
             return;
           }
         }
