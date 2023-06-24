@@ -56,7 +56,8 @@ const rule = createRule<Options, MessageIds>({
   meta: {
     type: "suggestion",
     docs: {
-      description: "TBC",
+      description:
+        "This rule warns about aspects of code that may be impure, and offers options to adjust how strict this is",
       recommended: false,
     },
     // mixing file and module terminology here for accuracy as it could be a script or module in some cases
