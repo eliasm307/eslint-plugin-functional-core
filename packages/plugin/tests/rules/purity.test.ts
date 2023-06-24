@@ -300,9 +300,21 @@ const validCases: ValidTestCase[] = [
   //   options: [{ allowMutatingReduceAccumulator: true }],
   // },
   {
-    name: "can call external function references that are constant",
+    name: "can call external function references that are constant and declared",
     code: `
       const externalFunc = () => 1;
+      function func() {
+        return externalFunc();
+      }
+    `,
+  },
+  {
+    name: "can call external function references that are constant and created from a higher order function",
+    code: `
+      function createExternalFunc() {
+        return () => 1;
+      }
+      const externalFunc = createExternalFunc();
       function func() {
         return externalFunc();
       }

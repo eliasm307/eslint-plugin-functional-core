@@ -241,11 +241,8 @@ export function variableIsImmutableFunctionReference(variable: Variable | undefi
   }
 
   if (definition.type === DefinitionType.Variable) {
-    // todo also use the type checker to determine if the variable is mutable
-    const isFunctionValue =
-      isArrowFunctionExpressionNode(definition.node?.init) ||
-      isFunctionExpressionNode(definition.node?.init);
-    return isFunctionValue && definition.parent?.kind === "const";
+    // if function reference is assigned to const variable then that function reference is immutable
+    return definition.parent?.kind === "const";
   }
 
   return false;

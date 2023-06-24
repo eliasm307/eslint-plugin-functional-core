@@ -158,6 +158,19 @@ const rule = createRule<Options, MessageIds>({
       });
     }
 
+    // use partial application to avoid mutable context usage lint warnings
+    function getUsageDataFor(node: Parameters<typeof getUsageData>[0]["node"]) {
+      return getUsageData({ node, context });
+    }
+
+    function getImmediateScopeFor(node: TSESTree.Node) {
+      return getImmediateScope({ node, scopeManager: context.scopeManager });
+    }
+
+    function globalUsageIsAllowedFor(accessSegments: string[]): boolean {
+      return globalUsageIsAllowed({ accessSegments, allowGlobals });
+    }
+
     return {
       Program(node) {
         context.scopeManager = analyzeScope(node, { sourceType: "module" });
@@ -176,7 +189,7 @@ const rule = createRule<Options, MessageIds>({
         }
       },
       ThisExpression(node) {
-        const currentScope = getImmediateScope({ node, scopeManager: context.scopeManager });
+        const currentScope = getImmediateScopeFor(node);
         if (thisExpressionIsGlobalWhenUsedInScope(currentScope)) {
           const directGlobalUsageAllowed = allowGlobals === true;
           if (!directGlobalUsageAllowed) {
@@ -199,7 +212,7 @@ const rule = createRule<Options, MessageIds>({
 
         // is variable reassignment?
         if (isIdentifierNode(targetNode)) {
-          const currentScope = getImmediateScope({ node, scopeManager: context.scopeManager });
+          const currentScope = getImmediateScopeFor(node);
           const assignmentTargetIdentifier = targetNode;
           const variable = getVariableInScope({
             node: assignmentTargetIdentifier,
@@ -217,7 +230,7 @@ const rule = createRule<Options, MessageIds>({
 
         // is variable reference mutation?
         if (isMemberExpressionNode(targetNode)) {
-          const usage = getUsageData({ node: targetNode, context });
+          const usage = getUsageDataFor(targetNode);
           if (!usage) {
             return; // unsupported member expression format so we can't determine the usage
           }
@@ -230,7 +243,7 @@ const rule = createRule<Options, MessageIds>({
           }
 
           if (isIdentifierNode(rootExpressionObject)) {
-            const currentScope = getImmediateScope({ node, scopeManager: context.scopeManager });
+            const currentScope = getImmediateScopeFor(node);
             const variable = getVariableInScope({
               node: rootExpressionObject,
               scope: currentScope,
@@ -252,7 +265,7 @@ const rule = createRule<Options, MessageIds>({
               return; // assignment to a reference variable in the current scope is fine except for parameters
             }
 
-            if (isGlobalUsage && globalUsageIsAllowed({ accessSegments, allowGlobals })) {
+            if (isGlobalUsage && globalUsageIsAllowedFor(accessSegments)) {
               return;
             }
 
@@ -278,13 +291,13 @@ const rule = createRule<Options, MessageIds>({
         "CallExpression > Identifier.callee",
         ":not(MemberExpression) > MemberExpression",
       ].join(",")](node: TSESTree.Identifier | TSESTree.MemberExpression) {
-        const usage = getUsageData({ node, context });
+        const usage = getUsageDataFor(node);
         if (!usage) {
           return;
         }
         const { isGlobalUsage, accessSegmentsNames: accessSegments, accessSegmentNodes } = usage;
         if (isGlobalUsage) {
-          if (!globalUsageIsAllowed({ accessSegments, allowGlobals })) {
+          if (!globalUsageIsAllowedFor(accessSegments)) {
             reportIssue({ node, messageId: "cannotReferenceGlobalContext" });
           }
           // ignore any other issues if the global usage is allowed
@@ -293,10 +306,10 @@ const rule = createRule<Options, MessageIds>({
 
         const rootExpressionObject = accessSegmentNodes[0];
         if (isIdentifierNode(rootExpressionObject)) {
-          const currentScope = getImmediateScope({ node, scopeManager: context.scopeManager });
+          const immediateScope = getImmediateScopeFor(node);
           const variable = getVariableInScope({
             node: rootExpressionObject,
-            scope: currentScope,
+            scope: immediateScope,
           });
           if (variableIsParameter(variable)) {
             // using any parameter is fine, even from parent functions
@@ -311,7 +324,7 @@ const rule = createRule<Options, MessageIds>({
             // however they can still be mutated as objects, so the mutability is conditional
             return;
           }
-          if (variableIsDefinedInFunctionScope(variable, currentScope)) {
+          if (variableIsDefinedInFunctionScope(variable, immediateScope)) {
             return; // using any variable from the current scope is fine, including parameters
           }
           reportIssue({
@@ -336,12 +349,12 @@ const rule = createRule<Options, MessageIds>({
           return;
         }
         if (isIdentifierNode(node.callee) || isMemberExpressionNode(node.callee)) {
-          const usage = getUsageData({ node: node.callee, context });
+          const usage = getUsageDataFor(node.callee);
           if (!usage) {
             return;
           }
           const { isGlobalUsage, accessSegmentsNames: accessSegments } = usage;
-          if (isGlobalUsage && globalUsageIsAllowed({ accessSegments, allowGlobals })) {
+          if (isGlobalUsage && globalUsageIsAllowedFor(accessSegments)) {
             return;
           }
         }
