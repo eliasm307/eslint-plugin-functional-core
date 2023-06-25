@@ -1,6 +1,6 @@
 {
   "name": "eslint-plugin-functional-core",
-  "version": "0.11.2",
+  "version": "1.0.0",
   "description": "An Eslint plugin to help enforce functional principles and increase the 'functional core' of your code base.",
   "repository": {
     "type": "git",
