@@ -3,7 +3,7 @@ import rule from "../../src/rules/purity";
 import type { InvalidTestCase, ValidTestCase } from "../../src/utils.pure/tests";
 import { createRuleTester, testCaseInPureFileByDefault } from "../../src/utils.pure/tests";
 
-// todo account for types of identifiers
+// todo account for TS types of identifiers
 // todo add option to disallow let and var, everything has to be const
 
 const validCases: ValidTestCase[] = [

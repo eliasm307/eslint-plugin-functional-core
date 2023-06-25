@@ -89,15 +89,15 @@ function isArray({ node, scope }: { node: TSESTree.Node; scope: Scope }): boolea
     return true;
   }
 
-  const resolvedVariable = getVariableInScope({ node, scope });
-  if (resolvedVariable) {
-    const definition = resolvedVariable.defs[0];
+  const variable = getVariableInScope({ node, scope });
+  if (variable) {
+    const definition = variable.defs[0];
 
     // we only look at the direct definition of the variable and dont follow up non-literal assignments
     // TS should be used to get types from more complex cases
-    const isExplicitArrayVariable =
+    const isLiteralArrayVariable =
       isVariableDefinition(definition) && isArrayExpressionNode(definition.node.init);
-    if (isExplicitArrayVariable) {
+    if (isLiteralArrayVariable) {
       return true;
     }
   }

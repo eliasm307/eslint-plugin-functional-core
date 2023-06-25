@@ -150,10 +150,10 @@ const rule = createRule<Options, MessageIds>({
       ruleContext.report({
         node,
         messageId,
-        data: {
-          nodeText: getNodeText(node),
-          nodeParentText: getNodeText(node.parent),
-        },
+        // data: {
+        //   nodeText: getNodeText(node),
+        //   nodeParentText: getNodeText(node.parent),
+        // },
       });
     }
 
@@ -192,7 +192,6 @@ const rule = createRule<Options, MessageIds>({
           reportIssue({ node, messageId: "moduleCannotHaveSideEffectImports" });
           return;
         }
-        // todo this should not be an issue with type checking
         if (!isPurePath(node.source.value)) {
           reportIssue({ node, messageId: "cannotImportImpureModules" });
         }
@@ -357,7 +356,7 @@ const rule = createRule<Options, MessageIds>({
        * Matches function calls where the return is not captured
        */
       "ExpressionStatement > CallExpression": function (node: TSESTree.CallExpression) {
-        // todo this should not be an issue with type checking
+        // todo this should not be an issue with type checking, ie its a const primitive value
         if (allowIgnoreFunctionCallResult) {
           return;
         }
