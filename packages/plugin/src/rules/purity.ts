@@ -142,6 +142,7 @@ const rule = createRule<Options, MessageIds>({
       messageId: MessageIds;
     }): void {
       if (nodesWithExistingIssues.has(node)) {
+        // don't report multiple issues for the same node
         return;
       }
 
@@ -176,6 +177,7 @@ const rule = createRule<Options, MessageIds>({
       return globalUsageIsAllowed({ accessSegmentsNames, node, allowGlobals });
     }
 
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
     function getNodeText(node: TSESTree.Node | undefined) {
       return context.sourceCode.getText(node);
     }

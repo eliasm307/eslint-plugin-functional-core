@@ -67,41 +67,33 @@ export function globalUsageIsAllowed({
     // ignore global aliases
     accessSegments = accessSegments.slice(1);
   }
+
   // some global namespaces can be called as functions
-  if (isCallExpressionNode(node.parent)) {
-    const isNamespaceCallExpression = accessSegments.length === 1;
-    if (isNamespaceCallExpression) {
-      if (accessSegments[0] === "Date" && !node.parent.arguments.length) {
-        // Date without arguments returns the current date and is not pure
-        // however with arguments it returns a specific date so can be pure
-        return false;
-      }
-      accessSegments = [...accessSegments, "{{AsFunction}}"];
+  const isNamespaceAccess = accessSegments.length === 1;
+  if (isNamespaceAccess && isCallExpressionNode(node.parent)) {
+    if (accessSegments[0] === "Date" && !node.parent.arguments.length) {
+      // Date without arguments returns the current date and is not pure
+      // however with arguments it returns a specific date so can be pure
+      return false;
     }
+    accessSegments = [...accessSegments, "{{AsFunction}}"];
   }
 
-  // check if global scope has general value
-  if (allowGlobals === undefined) {
-    return false; // default
-  }
   if (typeof allowGlobals === "boolean") {
-    return allowGlobals;
+    return allowGlobals; // value defined for global access
   }
   if (typeof allowGlobals !== "object" || allowGlobals === null) {
-    return false; // default, cant get global scopes
+    return false; // default, child access values not defined
   }
 
   // check defined scopes
   for (const segment of accessSegments) {
     allowGlobals = allowGlobals[segment];
-    if (allowGlobals === undefined) {
-      return false; // default
-    }
     if (typeof allowGlobals === "boolean") {
       return allowGlobals;
     }
     if (typeof allowGlobals !== "object" || allowGlobals === null) {
-      break; // cant get the next scope anyway
+      return false; // cant get the next scope
     }
   }
 
