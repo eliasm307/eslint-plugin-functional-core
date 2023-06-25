@@ -81,4 +81,4 @@ Then configure the rules you want to use under the rules section.
 
 Contributions are welcome!
 
-This plugin is still in development so any cases of impure code not yet covered by this plugin are welcome to accommodate different styles.
+This plugin is still in development so any examples of cases not being handled properly are welcome to accommodate different styles.
