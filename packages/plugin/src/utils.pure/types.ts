@@ -15,7 +15,7 @@ export type FunctionalCoreGlobalSettings = {
    * File paths including folders or files including '.pure' e.g. 'src/utils.pure/index.ts' or 'src/utils/index.pure.ts'
    * are always considered pure.
    */
-  pureModules: string[];
+  purePaths: string[];
 };
 
 export type AllowGlobalsValue = boolean | { [key: string]: boolean | AllowGlobalsValue };

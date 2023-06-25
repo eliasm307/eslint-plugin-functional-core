@@ -83,6 +83,30 @@ Then configure the rules you want to use under the rules section.
 
 <!-- end auto-generated rules list -->
 
+## Settings
+
+Settings can be configured in your `.eslintrc` file under the `functional-core` key.
+
+### purePaths
+
+This setting allows you to specify an array of RegEx patterns to match file/module/dependency paths that are considered "pure" and will trigger rules to check for impure code. The same patterns are used to determine if imports in a pure file are also pure.
+
+By default any file or folder with the ".pure" suffix is considered pure (e.g. `src/utils.pure/` or `src/utils/common.pure.ts`), regardless of the custom configuration, so you can use this to mark files as pure without having to configure anything.
+
+**Default:** `["\\.pure\\b"]`
+
+#### Example
+
+```json
+{
+  "settings": {
+    "functional-core": {
+      "purePaths": [".*"] // All files and imports are considered pure
+    }
+  }
+}
+```
+
 ## Contributing
 
 Contributions are welcome!

@@ -17,7 +17,7 @@ module.exports = {
   },
   settings: {
     "functional-core": {
-      pureModules: ["@typescript-eslint\\/utils", "@typescript-eslint\\/scope-manager"],
+      purePaths: ["@typescript-eslint\\/utils", "@typescript-eslint\\/scope-manager"],
     },
   },
 };

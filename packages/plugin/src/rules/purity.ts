@@ -112,15 +112,13 @@ const rule = createRule<Options, MessageIds>({
   create(ruleContext) {
     const filename = ruleContext.getFilename();
     const globalSettings = ruleContext.settings["functional-core"];
-    const isPureModulePath = createPurePathPredicate({
+    const isPurePath = createPurePathPredicate({
       filename,
-      customPureModulePatterns: globalSettings?.pureModules,
+      customPureModulePatterns: globalSettings?.purePaths,
     });
 
     // todo allow items in impure modules to be marked as pure
-    // todo make pattern for pure module paths configurable
-    const isPureFile = isPureModulePath(filename);
-    if (!isPureFile) {
+    if (!isPurePath(filename)) {
       return {}; // impure modules can do whatever they want
     }
 
@@ -195,7 +193,7 @@ const rule = createRule<Options, MessageIds>({
           return;
         }
         // todo this should not be an issue with type checking
-        if (!isPureModulePath(node.source.value)) {
+        if (!isPurePath(node.source.value)) {
           reportIssue({ node, messageId: "cannotImportImpureModules" });
         }
       },

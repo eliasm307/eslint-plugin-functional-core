@@ -22,7 +22,7 @@ const validCases: ValidTestCase[] = [
     `,
     settings: {
       "functional-core": {
-        pureModules: ["^foo$"],
+        purePaths: ["^foo$"],
       },
     },
   },
@@ -34,7 +34,7 @@ const validCases: ValidTestCase[] = [
     `,
     settings: {
       "functional-core": {
-        pureModules: ["\\/dir\\/"],
+        purePaths: ["\\/dir\\/"],
       },
     },
   },
@@ -70,7 +70,7 @@ const invalidCases: InvalidTestCase[] = [
     code: `import foo from "./tests/foo";`,
     settings: {
       "functional-core": {
-        pureModules: ["\\/test\\/"],
+        purePaths: ["\\/test\\/"],
       },
     },
     errors: [{ messageId: "cannotImportImpureModules" }],

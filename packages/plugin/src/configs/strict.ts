@@ -14,6 +14,6 @@ export default {
     ],
   },
   settings: {
-    pureModules: [".*"], // all files are pure by default
+    purePaths: [".*"], // all files are pure by default
   } satisfies SharedConfigurationSettings,
 };
