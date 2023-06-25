@@ -1,3 +1,5 @@
+[![npm version](https://img.shields.io/npm/v/eslint-plugin-functional-core.svg)](https://www.npmjs.com/package/eslint-plugin-functional-core)
+
 # eslint-plugin-functional-core
 
 A plugin to help enforce functional principles and increase the "functional core" of your code base.
@@ -69,9 +71,9 @@ Then configure the rules you want to use under the rules section.
 ✅ Set in the `recommended` configuration.\
 🔒 Set in the `strict` configuration.
 
-| Name                           | Description                                                                                               | 💼 | ⚠️ |
-| :----------------------------- | :-------------------------------------------------------------------------------------------------------- | :- | :- |
-| [purity](docs/rules/purity.md) | This rule warns about aspects of code that may be impure, and offers options to adjust how strict this is | 🔒 | ✅  |
+| Name                                                                                                                | Description                                                                                               | 💼  | ⚠️  |
+| :------------------------------------------------------------------------------------------------------------------ | :-------------------------------------------------------------------------------------------------------- | :-- | :-- |
+| [purity](https://github.com/eliasm307/eslint-plugin-functional-core/blob/main/packages/plugin/docs/rules/purity.md) | This rule warns about aspects of code that may be impure, and offers options to adjust how strict this is | 🔒  | ✅  |
 
 <!-- end auto-generated rules list -->
 
