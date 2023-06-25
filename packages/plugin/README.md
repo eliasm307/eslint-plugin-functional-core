@@ -14,14 +14,20 @@ The driving motivation behind this ESLint plugin is the concept of "Functional C
 By embracing functional principles in your Functional Core, you'll achieve:
 
 1. **Easier-to-reason-about code**: Deterministic and side effect-free logic.
-2. **Improved testability**: Simplified unit tests due to functional purity.
+2. **Improved testability**: Simplified unit tests with minimal mocking due to functional purity.
 3. **Increased reliability**: Greater predictability in code execution and bugs are easier to reproduce for a known input.
 
-The Imperative Shell on the other hand is where you'll find the "messy" code, where you'll have to deal with side effects, impure functions, and interfacing with other "imperative" code. This will be the likely source of bugs and is harder to test and maintain.
+The Imperative Shell on the other hand is where you'll find the "messy" code, where you'll have to deal with side effects, impure functions, and interfacing with other "imperative" code. This will be the likely source of bugs as it is harder to test (usually requiring complicated integration tests) and maintain.
 
 Although the Imperative Shell may introduce challenges, it plays a crucial role in actually delivering value to the external world, where the Functional Core does not affect anything by design.
 
 The goal is to minimize the Imperative Shell while maximizing the Functional Core for an optimal balance between reliability, maintainability, and practical application and this plugin aims to help you achieve that.
+
+Benefits of doing this well are:
+
+- A smaller surface area to focus on when debugging complex mutation related bugs
+- A smaller surface area to consider when making changes to exposed functionality
+- Having many fast unit tests (for a large Functional Core) and few slow integration tests (for a small Imperative Shell)
 
 Read more about this idea here:
 
