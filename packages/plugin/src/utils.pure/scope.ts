@@ -29,7 +29,7 @@ function isModuleScope(scope: Scope | undefined): scope is ModuleScope {
   return scope?.type === ScopeType.module;
 }
 
-/** Gets the immediate scope from a node */
+/** Gets the nearest parent scope from a node */
 export function getImmediateScope({
   node,
   scopeManager,
