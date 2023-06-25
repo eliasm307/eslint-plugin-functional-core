@@ -10,7 +10,7 @@ const validCases: ValidTestCase[] = [
   {
     name: "can use immutable external primitive variables",
     code: `
-      const x = 1;
+      const x = \`1\`;
       function foo() {
         const y = x;
       }
@@ -929,7 +929,10 @@ const invalidCases: InvalidTestCase[] = [
         externalFunc.assign = 1;
       }
     `,
-    errors: [{ messageId: "cannotMutateExternalVariables" }],
+    errors: [
+      { messageId: "cannotMutateExternalVariables" },
+      { messageId: "cannotUseExternalMutableVariables" },
+    ],
   },
   {
     name: "cannot assign to const function expression",

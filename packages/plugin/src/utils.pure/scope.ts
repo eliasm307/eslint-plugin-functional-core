@@ -6,6 +6,7 @@ import type {
   ParameterDefinition,
   VariableDefinition,
   ModuleScope,
+  ImportBindingDefinition,
 } from "@typescript-eslint/scope-manager";
 import { DefinitionType, ScopeType } from "@typescript-eslint/scope-manager";
 import type { TSESTree } from "@typescript-eslint/utils";
@@ -75,6 +76,10 @@ function isVariableDefinition(def: Definition): def is VariableDefinition {
   return def.type === DefinitionType.Variable;
 }
 
+function isImportBindingDefinition(def: Definition): def is ImportBindingDefinition {
+  return def.type === DefinitionType.ImportBinding;
+}
+
 export function variableIsParameter(variable: Variable | undefined): boolean {
   return variable?.defs.some(isParameterDefinition) ?? false;
 }
@@ -110,12 +115,12 @@ function isArrayReduceCallbackFunctionNode({
   scope: Scope;
 }): boolean {
   if (!isArrowFunctionExpressionNode(node) && !isFunctionExpressionNode(node)) {
-    // cant be a callback
+    // cant be a callback if it is not a function
     return false;
   }
 
   if (!isCallExpressionNode(node.parent)) {
-    // not a callback
+    // not a callback if its not a call expression child
     return false;
   }
 
@@ -125,7 +130,7 @@ function isArrayReduceCallbackFunctionNode({
     node.parent.callee.property.name !== "reduce" ||
     !isArray({ scope, node: node.parent.callee.object })
   ) {
-    // not a reduce call
+    // not an array reduce call
     return false;
   }
 
@@ -200,24 +205,21 @@ export function getVariableInScope({
   return undefined;
 }
 
-/** Ie the variable value can be re-assigned or mutated */
+/** `true` if the variable value cannot be re-assigned or mutated */
 export function variableValueIsImmutable(variable: Variable | undefined): boolean {
   const definition = variable?.defs[0];
   if (!definition) {
     return false; // global variable, assume mutable
   }
 
-  if (definition.type === DefinitionType.ImportBinding) {
+  if (isImportBindingDefinition(definition)) {
     return true;
   }
 
-  if (definition.type === DefinitionType.Variable) {
+  if (isVariableDefinition(definition)) {
     // todo also use the type checker to determine if the variable is mutable
     const isPrimitiveValue =
-      isLiteralNode(definition.node?.init) ||
-      // todo remove these conditions, there is a separate check for immutable references
-      isTemplateLiteralNode(definition.node?.init) ||
-      isArrowFunctionExpressionNode(definition.node?.init);
+      isLiteralNode(definition.node?.init) || isTemplateLiteralNode(definition.node?.init);
     return isPrimitiveValue && definition.parent?.kind === "const";
   }
 
@@ -235,8 +237,8 @@ const IMMUTABLE_FUNCTION_DEFINITION_TYPES = [
   DefinitionType.FunctionName,
 ];
 
-/** Ie the variable cannot be re-assigned */
-export function variableReferenceCannotBeReassigned(variable: Variable | undefined): boolean {
+/** `true` if the variable cannot be re-assigned to a different value/reference */
+export function variableCannotBeReAssigned(variable: Variable | undefined): boolean {
   const definition = variable?.defs[0];
   if (!definition) {
     return false; // global variable, assume mutable
@@ -246,7 +248,7 @@ export function variableReferenceCannotBeReassigned(variable: Variable | undefin
     return true;
   }
 
-  if (definition.type === DefinitionType.Variable) {
+  if (isVariableDefinition(definition)) {
     // if function reference is assigned to const variable then that function reference is immutable
     return definition.parent?.kind === "const";
   }

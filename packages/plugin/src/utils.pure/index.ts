@@ -39,13 +39,9 @@ export function createPurePathPredicate({
   customPureModulePatterns: string[] | undefined;
 }) {
   const purePathRegexes = customPureModulePatterns?.map((pattern) => new RegExp(pattern)) ?? [];
-  // eslint-disable-next-line functional-core/purity
   purePathRegexes.push(/\.pure\b/);
 
-  // todo add tests around this, eg for builtin module handling
   return (inputPath: string): boolean => {
-    // todo this should not be an error, need to use TS to know filename is not mutable
-
     inputPath = getNormalisedAbsolutePath({
       pathToResolve: inputPath,
       fromAbsoluteAbsoluteFilePath: filename,

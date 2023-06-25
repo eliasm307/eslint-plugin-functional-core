@@ -23,7 +23,7 @@ import {
   variableIsParameter,
   variableValueIsImmutable,
   thisExpressionIsGlobalWhenUsedInScope,
-  variableReferenceCannotBeReassigned,
+  variableCannotBeReAssigned,
   variableIsReduceAccumulatorParameter,
 } from "../utils.pure/scope";
 import type { AllowGlobalsValue, PurityRuleContext } from "../utils.pure/types";
@@ -332,7 +332,7 @@ const rule = createRule<Options, MessageIds>({
             return;
           }
           const isDirectFunctionVariableCall = isCallExpression && accessSegmentNodes.length === 1;
-          if (isDirectFunctionVariableCall && variableReferenceCannotBeReassigned(variable)) {
+          if (isDirectFunctionVariableCall && variableCannotBeReAssigned(variable)) {
             // functions can be immutable regarding being called as functions
             // however they can still be mutated as objects, so the mutability is conditional
             return;
