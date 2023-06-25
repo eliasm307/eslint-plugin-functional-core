@@ -31,10 +31,6 @@ function getNormalisedAbsolutePath({
   return normalisePath(pathToResolve);
 }
 
-export function isBuiltInPureModuleImport(importPath: string): boolean {
-  return ["path"].includes(importPath);
-}
-
 export function createPurePathPredicate({
   filename,
   customPureModulePatterns,
@@ -54,9 +50,7 @@ export function createPurePathPredicate({
       pathToResolve: inputPath,
       fromAbsoluteAbsoluteFilePath: filename,
     });
-    return (
-      isBuiltInPureModuleImport(inputPath) || purePathRegexes.some((regex) => regex.test(inputPath))
-    );
+    return purePathRegexes.some((regex) => regex.test(inputPath));
   };
 }
 
