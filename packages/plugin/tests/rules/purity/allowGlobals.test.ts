@@ -1,3 +1,4 @@
+import path from "path";
 import rule from "../../../src/rules/purity";
 import type { InvalidTestCase, ValidTestCase } from "../../../src/utils.pure/tests";
 import { createRuleTester, testCaseInPureFileByDefault } from "../../../src/utils.pure/tests";
@@ -135,7 +136,7 @@ const invalidCases: InvalidTestCase[] = [
   },
 ];
 
-createRuleTester().run("purity > allowGlobals", rule, {
+createRuleTester().run(`purity > ${path.basename(__filename, ".test.ts")}`, rule, {
   valid: validCases.map(testCaseInPureFileByDefault),
   invalid: invalidCases.map(testCaseInPureFileByDefault),
 });

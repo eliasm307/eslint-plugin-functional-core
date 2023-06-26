@@ -68,8 +68,14 @@ describe("utils.pure", () => {
       expect(actual).toEqual(expected);
     });
 
-    it("does not override if override is undefined", () => {
+    it("does not change property if override property is undefined", () => {
       const actual = applyDeepOverrides({ Foo: { Bar: true } }, { Foo: undefined as any });
+      const expected = { Foo: { Bar: true } };
+      expect(actual).toEqual(expected);
+    });
+
+    it("does not change anything if entire override is empty object", () => {
+      const actual = applyDeepOverrides({ Foo: { Bar: true } }, {});
       const expected = { Foo: { Bar: true } };
       expect(actual).toEqual(expected);
     });

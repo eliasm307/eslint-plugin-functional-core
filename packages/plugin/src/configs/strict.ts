@@ -10,6 +10,7 @@ export default {
         allowGlobals: false,
         allowIgnoreFunctionCallResult: false,
         allowMutatingReduceAccumulator: false,
+        allowSetters: false,
       } satisfies Required<RuleConfig>,
     ],
   },

@@ -5,6 +5,21 @@ import mod2Pure from "./mod2.pure";
 
 mod2Pure.func1(); // ❌
 
+class Foo {
+  bar = 1;
+  constructor() {
+    this.bar = 1;
+  }
+
+  method1() {
+    this.bar = 2; // ❌ modifying this only allowed in constructor
+  }
+}
+
+function f(param1: string) {
+  return (param2: string) => `params: ${param1} ${param2}`;
+}
+
 const val = mod2Pure.func1();
 
 let x = 1;

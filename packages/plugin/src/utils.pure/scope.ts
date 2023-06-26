@@ -7,6 +7,8 @@ import type {
   VariableDefinition,
   ModuleScope,
   ImportBindingDefinition,
+  FunctionScope,
+  ClassScope,
 } from "@typescript-eslint/scope-manager";
 import { DefinitionType, ScopeType } from "@typescript-eslint/scope-manager";
 import type { TSESTree } from "@typescript-eslint/utils";
@@ -18,6 +20,7 @@ import {
   isIdentifierNode,
   isLiteralNode,
   isMemberExpressionNode,
+  isMethodDefinitionNode,
   isProgramNode,
   isTemplateLiteralNode,
   isThisExpressionNode,
@@ -289,4 +292,77 @@ export function isGlobalScopeUsage({
   }
   const variable = getVariableInScope({ node, scope });
   return isGlobalVariable(variable);
+}
+
+function isFunctionScope(scope: Scope): scope is FunctionScope {
+  return scope.type === ScopeType.function;
+}
+
+function isClassScope(scope: Scope | null): scope is ClassScope {
+  return scope?.type === ScopeType.class;
+}
+
+function isWithinClassScope(scope: Scope): boolean {
+  while (scope) {
+    if (isClassScope(scope)) {
+      return true;
+    }
+    scope = scope.upper!;
+  }
+  return false;
+}
+
+function getImmediateImmediateFunctionScopeWithinClass(scope: Scope): FunctionScope | null {
+  while (scope) {
+    if (isFunctionScope(scope)) {
+      return scope;
+    }
+    if (isClassScope(scope.upper)) {
+      // we are within a class but not within a function, how is it possible?
+      return null;
+    }
+    scope = scope.upper!;
+  }
+  return null;
+}
+
+const scopeToImmediateClassMethodDefinitionNodeMap = new WeakMap<
+  Scope,
+  TSESTree.MethodDefinition
+>();
+
+function getImmediateClassMethodDefinitionNodeFromScope(
+  scope: Scope,
+): TSESTree.MethodDefinition | null {
+  const cachedMethodDefinitionNode = scopeToImmediateClassMethodDefinitionNodeMap.get(scope);
+  if (cachedMethodDefinitionNode) {
+    return cachedMethodDefinitionNode;
+  }
+
+  if (!isWithinClassScope(scope)) {
+    return null;
+  }
+
+  const methodFunctionScope = getImmediateImmediateFunctionScopeWithinClass(scope);
+  if (!methodFunctionScope) {
+    return null;
+  }
+
+  const methodDefinitionDefinitionNode =
+    isMethodDefinitionNode(methodFunctionScope.block.parent) && methodFunctionScope.block.parent;
+  if (!methodDefinitionDefinitionNode) {
+    // we are in a class but not directly in the method scope could be a child function
+    return null;
+  }
+
+  scopeToImmediateClassMethodDefinitionNodeMap.set(scope, methodDefinitionDefinitionNode);
+  return methodDefinitionDefinitionNode;
+}
+
+export function isClassConstructorScope(scope: Scope): boolean {
+  return getImmediateClassMethodDefinitionNodeFromScope(scope)?.kind === "constructor";
+}
+
+export function isClassSetterScope(scope: Scope): boolean {
+  return getImmediateClassMethodDefinitionNodeFromScope(scope)?.kind === "set";
 }

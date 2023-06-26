@@ -25,6 +25,8 @@ import {
   thisExpressionIsGlobalWhenUsedInScope,
   variableCannotBeReAssigned,
   variableIsReduceAccumulatorParameter,
+  isClassConstructorScope,
+  isClassSetterScope,
 } from "../utils.pure/scope";
 import type { AllowGlobalsValue, PurityRuleContext } from "../utils.pure/types";
 import { getPurityRuleConfig } from "../utils.pure/config";
@@ -35,6 +37,7 @@ export type RuleConfig = {
   allowIgnoreFunctionCallResult?: boolean;
   allowGlobals?: AllowGlobalsValue;
   allowMutatingReduceAccumulator?: boolean;
+  allowSetters?: boolean;
 };
 
 export type Options = [RuleConfig | undefined];
@@ -49,7 +52,8 @@ export type MessageIds =
   | "cannotImportImpureModules"
   | "cannotMutateThisContext"
   | "cannotIgnoreFunctionCallResult"
-  | "cannotMutateFunctionParameters";
+  | "cannotMutateFunctionParameters"
+  | "cannotDefineSetters";
 
 const rule = createRule<Options, MessageIds>({
   name: "purity",
@@ -74,6 +78,7 @@ const rule = createRule<Options, MessageIds>({
       cannotIgnoreFunctionCallResult:
         "A pure file/function cannot ignore function call return values, this is likely a side-effect",
       cannotMutateFunctionParameters: "A pure function cannot mutate parameters",
+      cannotDefineSetters: "A pure file cannot define a setter",
     },
     schema: [
       {
@@ -104,6 +109,11 @@ const rule = createRule<Options, MessageIds>({
             description:
               "Whether to allow mutating the accumulator in a reduce function, this is not pure but can be good for performance in some cases",
           },
+          allowSetters: {
+            type: "boolean",
+            description:
+              "Whether to allow object/class setters in pure files, as they cause implicit mutations by definition",
+          },
         } satisfies Record<keyof RuleConfig, JSONSchema4>,
       },
     ],
@@ -127,6 +137,7 @@ const rule = createRule<Options, MessageIds>({
       allowIgnoreFunctionCallResult,
       allowThrow,
       allowMutatingReduceAccumulator,
+      allowSetters,
     } = getPurityRuleConfig(ruleContext.options);
 
     const context = {
@@ -199,15 +210,15 @@ const rule = createRule<Options, MessageIds>({
         }
       },
       ThisExpression(node) {
-        const currentScope = getImmediateScopeFor(node);
-        if (thisExpressionIsGlobalWhenUsedInScope(currentScope)) {
+        const immediateScope = getImmediateScopeFor(node);
+        if (thisExpressionIsGlobalWhenUsedInScope(immediateScope)) {
           const directGlobalUsageAllowed = allowGlobals === true;
           if (!directGlobalUsageAllowed) {
             reportIssue({ node, messageId: "cannotReferenceGlobalContext" });
             return;
           }
         }
-        if (isArrowFunctionExpressionNode(currentScope.block)) {
+        if (isArrowFunctionExpressionNode(immediateScope.block)) {
           // ? make this more specific to this in arrow functions? or just "this" usage in general?
           reportIssue({ node, messageId: "cannotUseExternalMutableVariables" });
         }
@@ -222,14 +233,14 @@ const rule = createRule<Options, MessageIds>({
 
         // is variable reassignment?
         if (isIdentifierNode(targetNode)) {
-          const currentScope = getImmediateScopeFor(node);
+          const immediateScope = getImmediateScopeFor(node);
           const assignmentTargetIdentifier = targetNode;
           const variable = getVariableInScope({
             node: assignmentTargetIdentifier,
-            scope: currentScope,
+            scope: immediateScope,
           });
 
-          if (variableIsDefinedInFunctionScope(variable, currentScope)) {
+          if (variableIsDefinedInFunctionScope(variable, immediateScope)) {
             // if(variableIsParameter(variable) && is)
             return; // assignment to a variable in the current scope is fine except for parameters
           }
@@ -245,21 +256,27 @@ const rule = createRule<Options, MessageIds>({
             return; // unsupported member expression format so we can't determine the usage
           }
 
-          const { isGlobalUsage, accessSegmentsNames, rootAccessNode } = usage;
+          const { isGlobalUsage, accessSegmentsNames, rootAccessNode, immediateScope } = usage;
           if (isGlobalUsage && accessSegmentsNames[0] === "module") {
             return; // module is a special global that can be mutated
           }
 
           if (isThisExpressionNode(rootAccessNode)) {
+            if (isClassConstructorScope(immediateScope)) {
+              return; // mutating `this` is allowed in class constructors
+            }
+            if (isClassSetterScope(immediateScope)) {
+              // ? allow this for object setters? POJOs should not be using `this` though if the file is trying to be pure
+              return; // mutating `this` is allowed in class setters with an option
+            }
             reportIssue({ node, messageId: "cannotMutateThisContext" });
             return;
           }
 
           if (isIdentifierNode(rootAccessNode)) {
-            const currentScope = getImmediateScopeFor(node);
             const variable = getVariableInScope({
               node: rootAccessNode,
-              scope: currentScope,
+              scope: immediateScope,
             });
 
             if (variableIsParameter(variable)) {
@@ -270,20 +287,25 @@ const rule = createRule<Options, MessageIds>({
               ) {
                 return;
               }
-              reportIssue({
-                node,
-                messageId: "cannotMutateFunctionParameters",
-              });
+              reportIssue({ node, messageId: "cannotMutateFunctionParameters" });
               return;
             }
 
-            if (variableIsDefinedInFunctionScope(variable, currentScope)) {
+            if (variableIsDefinedInFunctionScope(variable, immediateScope)) {
               return; // assignment to a reference variable in the current scope is fine except for parameters
             }
 
             reportIssue({ node, messageId: "cannotMutateExternalVariables" });
           }
         }
+      },
+      "MethodDefinition[kind=set], Property[kind=set]": function (
+        node: TSESTree.MethodDefinition | TSESTree.Property,
+      ) {
+        if (allowSetters) {
+          return;
+        }
+        reportIssue({ node, messageId: "cannotDefineSetters" });
       },
       /**
        * Matches identifier usages then determines if the usages are pure or not

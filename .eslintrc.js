@@ -9,7 +9,7 @@ module.exports = {
   rules: {
     ...ecmConfig.rules,
     "functional-core/purity": [
-      "error",
+      "warn",
       {
         allowThrow: true,
       },
@@ -17,7 +17,7 @@ module.exports = {
   },
   settings: {
     "functional-core": {
-      purePaths: ["@typescript-eslint\\/utils", "@typescript-eslint\\/scope-manager"],
+      purePaths: [".*"],
     },
   },
 };

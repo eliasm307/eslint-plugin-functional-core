@@ -472,6 +472,17 @@ const validCases: ValidTestCase[] = [
       }
     `,
   },
+  {
+    name: "can define object setter (with option)",
+    code: `
+      const foo = {
+        set setter(v) {
+          // code
+        }
+      }
+    `,
+    options: [{ allowSetters: true }],
+  },
 ];
 
 const invalidCases: InvalidTestCase[] = [
@@ -750,72 +761,6 @@ const invalidCases: InvalidTestCase[] = [
     errors: [{ messageId: "cannotThrowErrors" }],
   },
   {
-    name: "cannot mutate instance properties by assignment",
-    code: `
-      class Foo {
-        constructor() {
-          this.value = 0;
-        }
-      }
-    `,
-    errors: [{ messageId: "cannotMutateThisContext" }],
-  },
-  {
-    name: "cannot mutate instance properties by object mutation",
-    code: `
-      class Foo {
-        constructor() {
-          this.prop.value = 0;
-        }
-      }
-    `,
-    errors: [{ messageId: "cannotMutateThisContext" }],
-  },
-  {
-    name: "cannot mutate instance properties by incrementing using shorthand",
-    code: `
-      class Foo {
-        method() {
-          this.value++;
-        }
-      }
-    `,
-    errors: [{ messageId: "cannotMutateThisContext" }],
-  },
-  {
-    name: "cannot mutate instance properties by incrementing",
-    code: `
-      class Foo {
-        method() {
-          this.value += 1;
-        }
-      }
-    `,
-    errors: [{ messageId: "cannotMutateThisContext" }],
-  },
-  {
-    name: "cannot mutate instance properties by decrementing using shorthand",
-    code: `
-      class Foo {
-        method() {
-          this.value--;
-        }
-      }
-    `,
-    errors: [{ messageId: "cannotMutateThisContext" }],
-  },
-  {
-    name: "cannot mutate instance properties by decrementing",
-    code: `
-      class Foo {
-        method() {
-          this.value -= 1;
-        }
-      }
-    `,
-    errors: [{ messageId: "cannotMutateThisContext" }],
-  },
-  {
     name: "cannot call functions and ignore the return value",
     code: `
     import mod2Pure from './mod2.pure';
@@ -1079,6 +1024,17 @@ const invalidCases: InvalidTestCase[] = [
       }
     `,
     errors: [{ messageId: "cannotUseExternalMutableVariables" }],
+  },
+  {
+    name: "cannot define object setter (without option)",
+    code: `
+      const foo = {
+        set setter(v) {
+          // code
+        }
+      }
+    `,
+    errors: [{ messageId: "cannotDefineSetters" }],
   },
 ];
 

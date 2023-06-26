@@ -108,3 +108,7 @@ export const isVariableDeclarationNode = (
 export const isAssignmentExpressionNode = (
   node: TSESTree.Node | null | undefined,
 ): node is TSESTree.AssignmentExpression => node?.type === AST_NODE_TYPES.AssignmentExpression;
+
+export const isMethodDefinitionNode = (
+  node: TSESTree.Node | null | undefined,
+): node is TSESTree.MethodDefinition => node?.type === AST_NODE_TYPES.MethodDefinition;
