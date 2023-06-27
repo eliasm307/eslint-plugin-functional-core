@@ -4,7 +4,11 @@
   "description": "An Eslint plugin to help enforce functional principles and increase the 'functional core' of your code base.",
   "repository": {
     "type": "git",
-    "url": "https://github.com/eliasm307/eslint-plugin-functional-core.git"
+    "url": "https://github.com/eliasm307/eslint-plugin-functional-core.git",
+    "directory": "packages/plugin"
+  },
+  "publishConfig": {
+    "access": "public"
   },
   "license": "MIT",
   "author": "Elias Mangoro",
