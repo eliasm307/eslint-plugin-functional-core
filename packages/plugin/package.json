@@ -42,7 +42,7 @@
     "clean": "tsc -b tsconfig.build.json --clean",
     "postclean": "rimraf dist && rimraf coverage",
     "format": "prettier --write \"./**/*.{ts,mts,cts,tsx,js,mjs,cjs,jsx,json,css}\" --ignore-path ../../.prettierignore --config ../../prettier.config.js",
-    "prepublish:base": "npm run lint && npm run format && npm run test && npm run update:eslint-docs",
+    "prepublish:base": "npm run lint && npm run format && npm run update:eslint-docs && npm run test",
     "publish:base": "npm run build && cross-env GIT_RELATIVE_CWD=../.. NPM_RELATIVE_CWD=. node ../../node_modules/@eliasm307/config/dist/scripts/publish.js",
     "publish:patch": "npm run publish:base -- patch",
     "publish:minor": "npm run publish:base -- minor",
