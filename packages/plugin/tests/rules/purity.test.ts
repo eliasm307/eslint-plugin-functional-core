@@ -625,6 +625,15 @@ const validCases: ValidTestCase[] = [
     `,
     options: [{ allowSetters: true }],
   },
+  {
+    name: "can have function without return with option",
+    code: `
+      function foo() {
+        const x = 1;
+      }
+    `,
+    options: [{ allowFunctionWithoutReturn: true }],
+  },
 ];
 
 const invalidCases: InvalidTestCase[] = [
@@ -1035,16 +1044,13 @@ const invalidCases: InvalidTestCase[] = [
     errors: [{ messageId: "cannotUseExternalMutableVariables" }],
   },
   {
-    name: "cannot use impure global functions",
+    name: "cannot use impure global functions (without setting it as an allowed global)",
     code: `
       function method() {
         setTimeout(() => null, 1000);
       }
     `,
-    errors: [
-      { messageId: "cannotIgnoreFunctionCallResult" },
-      { messageId: "cannotReferenceGlobalContext" },
-    ],
+    errors: [{ messageId: "cannotReferenceGlobalContext" }],
   },
   {
     name: "cannot throw errors (without option flag)",
@@ -1055,15 +1061,16 @@ const invalidCases: InvalidTestCase[] = [
         }
       }
     `,
-    options: [{ allowGlobals: { Error: true } }],
+    options: [{ allowThrow: false }],
     errors: [{ messageId: "cannotThrowErrors" }],
   },
   {
-    name: "cannot call functions and ignore the return value",
+    name: "cannot call functions and ignore the return value (without option)",
     code: `
     import mod2Pure from './mod2.pure';
     mod2Pure.func1()
     `,
+    options: [{ allowIgnoreFunctionCallResult: false }],
     errors: [{ messageId: "cannotIgnoreFunctionCallResult" }],
   },
   {
@@ -1203,6 +1210,7 @@ const invalidCases: InvalidTestCase[] = [
         }, {});
       }
     `,
+    options: [{ allowMutatingReduceAccumulator: false }],
     errors: [{ messageId: "cannotMutateFunctionParameters" }],
   },
   {
@@ -1216,6 +1224,7 @@ const invalidCases: InvalidTestCase[] = [
         }, {});
       }
     `,
+    options: [{ allowMutatingReduceAccumulator: false }],
     errors: [{ messageId: "cannotMutateFunctionParameters" }],
   },
   // todo support typescript
@@ -1332,6 +1341,7 @@ const invalidCases: InvalidTestCase[] = [
         }
       }
     `,
+    options: [{ allowSetters: false }],
     errors: [{ messageId: "cannotDefineSetters" }],
   },
   {
@@ -1462,6 +1472,16 @@ const invalidCases: InvalidTestCase[] = [
       }
     `,
     errors: [{ messageId: "cannotUseExternalMutableVariables" }],
+  },
+  {
+    name: "cannot have function without return (without option)",
+    code: `
+      function foo() {
+        const x = 1;
+      }
+    `,
+    options: [{ allowFunctionWithoutReturn: false }],
+    errors: [{ messageId: "functionsMustExplicitlyReturnAValue" }],
   },
 ];
 

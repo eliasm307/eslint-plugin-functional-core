@@ -12,6 +12,8 @@ export default {
         allowMutatingReduceAccumulator: true,
         allowGlobals: {}, // dont modify default
         allowSetters: false,
+        allowClassInstanceThisMutations: true,
+        allowFunctionWithoutReturn: true,
       } satisfies Required<RuleConfig>,
     ],
   },

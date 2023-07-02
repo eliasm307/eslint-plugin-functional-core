@@ -142,7 +142,7 @@ const validCases: ValidTestCase[] = [
 const invalidCases: InvalidTestCase[] = [
   // constructor cases
   {
-    name: "cannot mutate this properties in constructor child function declaration scope",
+    name: "cannot mutate this properties in constructor child function declaration scope (without option)",
     code: `
       class Foo {
         constructor() {
@@ -158,7 +158,7 @@ const invalidCases: InvalidTestCase[] = [
     ],
   },
   {
-    name: "cannot mutate instance properties in constructor child arrow function scope",
+    name: "cannot mutate instance properties in constructor child arrow function scope (without option)",
     code: `
       class Foo {
         constructor() {
@@ -168,12 +168,13 @@ const invalidCases: InvalidTestCase[] = [
         }
       }
     `,
+    options: [{ allowClassInstanceThisMutations: false }],
     errors: [{ messageId: "cannotMutateThisContext" }],
   },
 
   // method cases
   {
-    name: "cannot mutate instance properties by assignment in method",
+    name: "cannot mutate instance properties by assignment in method (without option)",
     code: `
       class Foo {
         method() {
@@ -181,10 +182,11 @@ const invalidCases: InvalidTestCase[] = [
         }
       }
     `,
+    options: [{ allowClassInstanceThisMutations: false }],
     errors: [{ messageId: "cannotMutateThisContext" }],
   },
   {
-    name: "cannot mutate instance properties by object mutation in method",
+    name: "cannot mutate instance properties by object mutation in method (without option)",
     code: `
       class Foo {
         method() {
@@ -192,10 +194,11 @@ const invalidCases: InvalidTestCase[] = [
         }
       }
     `,
+    options: [{ allowClassInstanceThisMutations: false }],
     errors: [{ messageId: "cannotMutateThisContext" }],
   },
   {
-    name: "cannot mutate instance properties by incrementing using shorthand in method",
+    name: "cannot mutate instance properties by incrementing using shorthand in method (without option)",
     code: `
       class Foo {
         method() {
@@ -203,10 +206,11 @@ const invalidCases: InvalidTestCase[] = [
         }
       }
     `,
+    options: [{ allowClassInstanceThisMutations: false }],
     errors: [{ messageId: "cannotMutateThisContext" }],
   },
   {
-    name: "cannot mutate instance properties by incrementing in method",
+    name: "cannot mutate instance properties by incrementing in method (without option)",
     code: `
       class Foo {
         method() {
@@ -214,10 +218,11 @@ const invalidCases: InvalidTestCase[] = [
         }
       }
     `,
+    options: [{ allowClassInstanceThisMutations: false }],
     errors: [{ messageId: "cannotMutateThisContext" }],
   },
   {
-    name: "cannot mutate instance properties by decrementing using shorthand in method",
+    name: "cannot mutate instance properties by decrementing using shorthand in method (without option)",
     code: `
       class Foo {
         method() {
@@ -225,10 +230,11 @@ const invalidCases: InvalidTestCase[] = [
         }
       }
     `,
+    options: [{ allowClassInstanceThisMutations: false }],
     errors: [{ messageId: "cannotMutateThisContext" }],
   },
   {
-    name: "cannot mutate instance properties by decrementing in method",
+    name: "cannot mutate instance properties by decrementing in method (without option)",
     code: `
       class Foo {
         method() {
@@ -236,6 +242,7 @@ const invalidCases: InvalidTestCase[] = [
         }
       }
     `,
+    options: [{ allowClassInstanceThisMutations: false }],
     errors: [{ messageId: "cannotMutateThisContext" }],
   },
   {
@@ -254,7 +261,7 @@ const invalidCases: InvalidTestCase[] = [
 
   // getter cases
   {
-    name: "cannot mutate instance properties by assignment in getter",
+    name: "cannot mutate instance properties by assignment in getter (without option)",
     code: `
       class Foo {
         get getter() {
@@ -263,10 +270,11 @@ const invalidCases: InvalidTestCase[] = [
         }
       }
     `,
+    options: [{ allowClassInstanceThisMutations: false }],
     errors: [{ messageId: "cannotMutateThisContext" }],
   },
   {
-    name: "cannot mutate instance properties by object mutation in getter",
+    name: "cannot mutate instance properties by object mutation in getter (without option)",
     code: `
       class Foo {
         get getter() {
@@ -275,10 +283,11 @@ const invalidCases: InvalidTestCase[] = [
         }
       }
     `,
+    options: [{ allowClassInstanceThisMutations: false }],
     errors: [{ messageId: "cannotMutateThisContext" }],
   },
   {
-    name: "cannot mutate instance properties by incrementing using shorthand in getter",
+    name: "cannot mutate instance properties by incrementing using shorthand in getter (without option)",
     code: `
       class Foo {
         get getter() {
@@ -287,10 +296,11 @@ const invalidCases: InvalidTestCase[] = [
         }
       }
     `,
+    options: [{ allowClassInstanceThisMutations: false }],
     errors: [{ messageId: "cannotMutateThisContext" }],
   },
   {
-    name: "cannot mutate instance properties by incrementing in getter",
+    name: "cannot mutate instance properties by incrementing in getter (without option)",
     code: `
       class Foo {
         get getter() {
@@ -299,10 +309,11 @@ const invalidCases: InvalidTestCase[] = [
         }
       }
     `,
+    options: [{ allowClassInstanceThisMutations: false }],
     errors: [{ messageId: "cannotMutateThisContext" }],
   },
   {
-    name: "cannot mutate instance properties by decrementing using shorthand in getter",
+    name: "cannot mutate instance properties by decrementing using shorthand in getter (without option)",
     code: `
       class Foo {
         get getter() {
@@ -311,10 +322,11 @@ const invalidCases: InvalidTestCase[] = [
         }
       }
     `,
+    options: [{ allowClassInstanceThisMutations: false }],
     errors: [{ messageId: "cannotMutateThisContext" }],
   },
   {
-    name: "cannot mutate instance properties by decrementing in getter",
+    name: "cannot mutate instance properties by decrementing in getter (without option)",
     code: `
       class Foo {
         get getter() {
@@ -323,6 +335,7 @@ const invalidCases: InvalidTestCase[] = [
         }
       }
     `,
+    options: [{ allowClassInstanceThisMutations: false }],
     errors: [{ messageId: "cannotMutateThisContext" }],
   },
 
@@ -336,6 +349,7 @@ const invalidCases: InvalidTestCase[] = [
         }
       }
     `,
+    options: [{ allowSetters: false }],
     errors: [{ messageId: "cannotDefineSetters" }],
   },
   {

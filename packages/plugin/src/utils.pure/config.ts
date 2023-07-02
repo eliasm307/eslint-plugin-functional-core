@@ -56,13 +56,15 @@ function getAllowGlobalsValueWithDefaults(
 export function getPurityRuleConfig(options: Options): RuleConfig {
   const customConfig = options[0];
 
-  // the default values here should be "strict" so that the user has to explicitly opt-in to the more permissive options
+  // the default values here should be "loose" so that the user can adopt more strict settings gradually
+  // this also makes it easier to add new options in the future without affecting existing setups/configs
   return {
     allowGlobals: getAllowGlobalsValueWithDefaults(customConfig?.allowGlobals),
-    allowIgnoreFunctionCallResult: customConfig?.allowIgnoreFunctionCallResult ?? false,
-    allowThrow: customConfig?.allowThrow ?? false,
-    allowMutatingReduceAccumulator: customConfig?.allowMutatingReduceAccumulator ?? false,
-    allowSetters: customConfig?.allowSetters ?? false,
-    allowClassInstanceThisMutations: customConfig?.allowClassInstanceThisMutations ?? false,
+    allowIgnoreFunctionCallResult: customConfig?.allowIgnoreFunctionCallResult ?? true,
+    allowThrow: customConfig?.allowThrow ?? true,
+    allowMutatingReduceAccumulator: customConfig?.allowMutatingReduceAccumulator ?? true,
+    allowSetters: customConfig?.allowSetters ?? true,
+    allowClassInstanceThisMutations: customConfig?.allowClassInstanceThisMutations ?? true,
+    allowFunctionWithoutReturn: customConfig?.allowFunctionWithoutReturn ?? true,
   } satisfies Required<RuleConfig>;
 }

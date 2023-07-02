@@ -43,6 +43,7 @@ export type RuleConfig = {
   allowMutatingReduceAccumulator?: boolean;
   allowSetters?: boolean;
   allowClassInstanceThisMutations?: boolean;
+  allowFunctionWithoutReturn?: boolean;
 };
 
 export type Options = [RuleConfig | undefined];
@@ -58,7 +59,8 @@ export type MessageIds =
   | "cannotMutateThisContext"
   | "cannotIgnoreFunctionCallResult"
   | "cannotMutateFunctionParameters"
-  | "cannotDefineSetters";
+  | "cannotDefineSetters"
+  | "functionsMustExplicitlyReturnAValue";
 
 const rule = createRule<Options, MessageIds>({
   name: "purity",
@@ -84,6 +86,7 @@ const rule = createRule<Options, MessageIds>({
         "A pure file/function cannot ignore function call return values, this is likely a side-effect",
       cannotMutateFunctionParameters: "A pure function cannot mutate parameters",
       cannotDefineSetters: "A pure file cannot define a setter",
+      functionsMustExplicitlyReturnAValue: "A pure function must explicitly return a value",
     },
     schema: [
       {
@@ -123,6 +126,10 @@ const rule = createRule<Options, MessageIds>({
             type: "boolean",
             description: "Whether to allow mutating class instances via 'this' in classes",
           },
+          allowFunctionWithoutReturn: {
+            type: "boolean",
+            description: "Whether to allow functions without a return statement",
+          },
         } satisfies Record<keyof RuleConfig, JSONSchema4>,
       },
     ],
@@ -148,6 +155,7 @@ const rule = createRule<Options, MessageIds>({
       allowMutatingReduceAccumulator,
       allowSetters,
       allowClassInstanceThisMutations,
+      allowFunctionWithoutReturn,
     } = getPurityRuleConfig(ruleContext.options);
 
     const context = {
@@ -456,6 +464,12 @@ const rule = createRule<Options, MessageIds>({
           }
         }
         reportIssue({ node, messageId: "cannotIgnoreFunctionCallResult" });
+      },
+      ":function:matches(*:not(ReturnStatement))": function (node: TSESTree.Node) {
+        if (allowFunctionWithoutReturn) {
+          return;
+        }
+        reportIssue({ node, messageId: "functionsMustExplicitlyReturnAValue" });
       },
     };
   },
