@@ -9,7 +9,6 @@ import type { TSESTree } from "@typescript-eslint/utils";
 import type { JSONSchema4 } from "@typescript-eslint/utils/dist/json-schema";
 import { createPurePathPredicate, createRule, globalUsageIsAllowed } from "../utils.pure";
 import {
-  isArrowFunctionExpressionNode,
   isAssignmentExpressionNode,
   isCallExpressionNode,
   isIdentifierNode,
@@ -19,7 +18,7 @@ import {
 import {
   getImmediateScope,
   getVariableInScope,
-  variableIsDefinedInScope as variableIsDefinedInFunctionScope,
+  variableIsDefinedInCurrentFunctionScope,
   variableIsParameter,
   variableValueIsImmutable,
   thisExpressionIsGlobalWhenUsedInScope,
@@ -27,6 +26,7 @@ import {
   variableIsReduceAccumulatorParameter,
   isClassConstructorScope,
   isClassSetterScope,
+  thisExpressionIsClassInstanceWhenUsedInScope,
 } from "../utils.pure/scope";
 import type { AllowGlobalsValue, PurityRuleContext } from "../utils.pure/types";
 import { getPurityRuleConfig } from "../utils.pure/config";
@@ -38,6 +38,7 @@ export type RuleConfig = {
   allowGlobals?: AllowGlobalsValue;
   allowMutatingReduceAccumulator?: boolean;
   allowSetters?: boolean;
+  allowClassInstanceThisMutations?: boolean;
 };
 
 export type Options = [RuleConfig | undefined];
@@ -114,6 +115,10 @@ const rule = createRule<Options, MessageIds>({
             description:
               "Whether to allow object/class setters in pure files, as they cause implicit mutations by definition",
           },
+          allowClassInstanceThisMutations: {
+            type: "boolean",
+            description: "Whether to allow mutating class instances via 'this' in classes",
+          },
         } satisfies Record<keyof RuleConfig, JSONSchema4>,
       },
     ],
@@ -138,6 +143,7 @@ const rule = createRule<Options, MessageIds>({
       allowThrow,
       allowMutatingReduceAccumulator,
       allowSetters,
+      allowClassInstanceThisMutations,
     } = getPurityRuleConfig(ruleContext.options);
 
     const context = {
@@ -214,14 +220,20 @@ const rule = createRule<Options, MessageIds>({
         if (thisExpressionIsGlobalWhenUsedInScope(immediateScope)) {
           const directGlobalUsageAllowed = allowGlobals === true;
           if (!directGlobalUsageAllowed) {
+            // this likely means using globals which mean the function is not pure
             reportIssue({ node, messageId: "cannotReferenceGlobalContext" });
             return;
           }
         }
-        if (isArrowFunctionExpressionNode(immediateScope.block)) {
-          // ? make this more specific to this in arrow functions? or just "this" usage in general?
-          reportIssue({ node, messageId: "cannotUseExternalMutableVariables" });
+
+        if (thisExpressionIsClassInstanceWhenUsedInScope(immediateScope)) {
+          // referring to `this` in a class is allowed as it is fundamental functionality for classes
+          // however mutating `this` etc will trigger other issues
+          return;
         }
+
+        // this means the function is not pure as the context its relying on can change its behaviour between calls
+        reportIssue({ node, messageId: "cannotUseExternalMutableVariables" });
       },
       /**
        * Matches on direct reassignment of variables or mutation of variable references
@@ -240,7 +252,7 @@ const rule = createRule<Options, MessageIds>({
             scope: immediateScope,
           });
 
-          if (variableIsDefinedInFunctionScope(variable, immediateScope)) {
+          if (variableIsDefinedInCurrentFunctionScope(variable, immediateScope)) {
             // if(variableIsParameter(variable) && is)
             return; // assignment to a variable in the current scope is fine except for parameters
           }
@@ -262,13 +274,24 @@ const rule = createRule<Options, MessageIds>({
           }
 
           if (isThisExpressionNode(rootAccessNode)) {
-            if (isClassConstructorScope(immediateScope)) {
-              return; // mutating `this` is allowed in class constructors
+            if (thisExpressionIsClassInstanceWhenUsedInScope(immediateScope)) {
+              // there are some exceptions for classes as they depend on using `this`
+              // however I think its still possible for classes to be pure-like
+              if (allowClassInstanceThisMutations) {
+                return; // mutating `this` is allowed in class instance methods with an option
+              }
+              if (isClassConstructorScope(immediateScope)) {
+                // mutating `this` is allowed in class constructors, this is like making a new object literal
+                // so it makes sense to allow this here as it is initialising the object
+                return;
+              }
+              if (isClassSetterScope(immediateScope)) {
+                // NOTE: intentionally not allowed for object setters, classes have an excuse
+                // but POJOs should not be using `this` if the file is trying to be pure-like
+                return; // class setters will likely involve a `this` mutation, there is a separate option to allow setters
+              }
             }
-            if (isClassSetterScope(immediateScope)) {
-              // ? allow this for object setters? POJOs should not be using `this` though if the file is trying to be pure
-              return; // mutating `this` is allowed in class setters with an option
-            }
+
             reportIssue({ node, messageId: "cannotMutateThisContext" });
             return;
           }
@@ -291,7 +314,7 @@ const rule = createRule<Options, MessageIds>({
               return;
             }
 
-            if (variableIsDefinedInFunctionScope(variable, immediateScope)) {
+            if (variableIsDefinedInCurrentFunctionScope(variable, immediateScope)) {
               return; // assignment to a reference variable in the current scope is fine except for parameters
             }
 
@@ -360,7 +383,7 @@ const rule = createRule<Options, MessageIds>({
             // however they can still be mutated as objects, so the mutability is conditional
             return;
           }
-          if (variableIsDefinedInFunctionScope(variable, immediateScope)) {
+          if (variableIsDefinedInCurrentFunctionScope(variable, immediateScope)) {
             return; // using any variable from the current scope is fine, including parameters
           }
           reportIssue({

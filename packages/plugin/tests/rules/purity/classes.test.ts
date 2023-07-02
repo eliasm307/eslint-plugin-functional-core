@@ -78,12 +78,68 @@ const validCases: ValidTestCase[] = [
     `,
     options: [{ allowSetters: true }],
   },
+  {
+    name: "can return this from method",
+    code: `
+      class Foo {
+        method() {
+          return this;
+        }
+      }
+    `,
+  },
+  {
+    name: "can implicit return this from arrow function in method",
+    code: `
+      class Foo {
+        method() {
+          return () => this;
+        }
+      }
+    `,
+  },
+  {
+    name: "can explicit return this from arrow function in method",
+    code: `
+      class Foo {
+        method() {
+          return () => {
+            return this;
+          }
+        }
+      }
+    `,
+  },
+  {
+    name: "can mutate this in methods with option",
+    code: `
+      class Foo {
+        method() {
+          this.value = 0;
+        }
+      }
+    `,
+    options: [{ allowClassInstanceThisMutations: true }],
+  },
+  {
+    name: "can mutate class this in arrow function inside methods with option",
+    code: `
+      class Foo {
+        method() {
+          return () => {
+            this.value = 0;
+          }
+        }
+      }
+    `,
+    options: [{ allowClassInstanceThisMutations: true }],
+  },
 ];
 
 const invalidCases: InvalidTestCase[] = [
   // constructor cases
   {
-    name: "cannot mutate instance properties in constructor child function declaration scope",
+    name: "cannot mutate this properties in constructor child function declaration scope",
     code: `
       class Foo {
         constructor() {
@@ -93,7 +149,10 @@ const invalidCases: InvalidTestCase[] = [
         }
       }
     `,
-    errors: [{ messageId: "cannotMutateThisContext" }],
+    errors: [
+      { messageId: "cannotMutateThisContext" },
+      { messageId: "cannotUseExternalMutableVariables" },
+    ],
   },
   {
     name: "cannot mutate instance properties in constructor child arrow function scope",
@@ -106,11 +165,7 @@ const invalidCases: InvalidTestCase[] = [
         }
       }
     `,
-    // todo this should only be one error
-    errors: [
-      { messageId: "cannotMutateThisContext" },
-      { messageId: "cannotUseExternalMutableVariables" },
-    ],
+    errors: [{ messageId: "cannotMutateThisContext" }],
   },
 
   // method cases
@@ -180,6 +235,19 @@ const invalidCases: InvalidTestCase[] = [
     `,
     errors: [{ messageId: "cannotMutateThisContext" }],
   },
+  {
+    name: "cannot return this from function declaration in method",
+    code: `
+      class Foo {
+        method() {
+          return function() {
+            return this;
+          }
+        }
+      }
+    `,
+    errors: [{ messageId: "cannotUseExternalMutableVariables" }],
+  },
 
   // getter cases
   {
@@ -188,7 +256,7 @@ const invalidCases: InvalidTestCase[] = [
       class Foo {
         get getter() {
           this.value = 0;
-          return this.value;
+          return 1;
         }
       }
     `,
@@ -200,7 +268,7 @@ const invalidCases: InvalidTestCase[] = [
       class Foo {
         get getter() {
           this.prop.value = 0;
-          return this.value;
+          return 1;
         }
       }
     `,
@@ -212,7 +280,7 @@ const invalidCases: InvalidTestCase[] = [
       class Foo {
         get getter() {
           this.value++;
-          return this.value;
+          return 1;
         }
       }
     `,
@@ -224,7 +292,7 @@ const invalidCases: InvalidTestCase[] = [
       class Foo {
         get getter() {
           this.value += 1;
-          return this.value;
+          return 1;
         }
       }
     `,
@@ -236,7 +304,7 @@ const invalidCases: InvalidTestCase[] = [
       class Foo {
         get getter() {
           this.value--;
-          return this.value;
+          return 1;
         }
       }
     `,
@@ -248,7 +316,7 @@ const invalidCases: InvalidTestCase[] = [
       class Foo {
         get getter() {
           this.value -= 1;
-          return this.value;
+          return 1;
         }
       }
     `,
@@ -266,6 +334,23 @@ const invalidCases: InvalidTestCase[] = [
       }
     `,
     errors: [{ messageId: "cannotDefineSetters" }],
+  },
+  {
+    name: "cannot mutate this in function declaration sub-scope inside methods with option",
+    code: `
+      class Foo {
+        method() {
+          function sub() {
+            this.value = 0;
+          }
+        }
+      }
+    `,
+    options: [{ allowClassInstanceThisMutations: true }],
+    errors: [
+      { messageId: "cannotMutateThisContext" },
+      { messageId: "cannotUseExternalMutableVariables" },
+    ],
   },
 ];
 

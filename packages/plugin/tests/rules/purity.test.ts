@@ -278,6 +278,30 @@ const validCases: ValidTestCase[] = [
     `,
   },
   {
+    name: "can use external const destructured variables in conditions",
+    code: `
+      const y = {x: {}}
+      const {x} = y;
+      function foo() {
+        if(x) {
+          return 1;
+        }
+      }
+    `,
+  },
+  {
+    name: "can use external immutable reference const variables in chained conditions",
+    code: `
+      const x = {};
+      const y = {};
+      function foo() {
+        if(x || y) {
+          return 1;
+        }
+      }
+    `,
+  },
+  {
     name: "can call imported functions",
     code: `
       import externalFunc from "./mod.pure";
@@ -486,6 +510,7 @@ const validCases: ValidTestCase[] = [
 ];
 
 const invalidCases: InvalidTestCase[] = [
+  {},
   {
     name: "cannot mutate properties of this",
     code: `
@@ -538,13 +563,22 @@ const invalidCases: InvalidTestCase[] = [
     errors: [{ messageId: "cannotReferenceGlobalContext" }],
   },
   {
-    name: "cannot use global this",
+    name: "cannot use global this from arrow function",
     code: `
       const foo = () => {
         const x = this;
       }
     `,
     errors: [{ messageId: "cannotReferenceGlobalContext" }],
+  },
+  {
+    name: "cannot alias this in function declaration",
+    code: `
+      function foo() {
+        const x = this;
+      }
+    `,
+    errors: [{ messageId: "cannotUseExternalMutableVariables" }],
   },
   {
     name: "cannot mutate global variables",
@@ -670,6 +704,19 @@ const invalidCases: InvalidTestCase[] = [
     errors: [{ messageId: "cannotMutateFunctionParameters" }],
   },
   {
+    name: "cannot use external mutable const variable properties in chained conditions",
+    code: `
+      const x = {};
+      const y = 1;
+      function foo() {
+        if(x.y || y) {
+          return 1;
+        }
+      }
+    `,
+    errors: [{ messageId: "cannotUseExternalMutableVariables" }],
+  },
+  {
     name: "cannot use external mutable let variables in single conditions",
     code: `
       let x = 1;
@@ -682,12 +729,38 @@ const invalidCases: InvalidTestCase[] = [
     errors: [{ messageId: "cannotUseExternalMutableVariables" }],
   },
   {
+    name: "cannot use external let destructured variables in conditions",
+    code: `
+      const y = {x: {}}
+      let {x} = y;
+      function foo() {
+        if(x) {
+          return 1;
+        }
+      }
+    `,
+    errors: [{ messageId: "cannotUseExternalMutableVariables" }],
+  },
+  {
     name: "cannot use external mutable let variables in chained conditions",
     code: `
       let x = {};
-      const y = 1
+      const y = 1;
       function foo() {
         if(x.y || y) {
+          return 1;
+        }
+      }
+    `,
+    errors: [{ messageId: "cannotUseExternalMutableVariables" }],
+  },
+  {
+    name: "cannot use external let destructured variables in conditions",
+    code: `
+      const y = {x: {}}
+      let {x} = y;
+      function foo() {
+        if(x) {
           return 1;
         }
       }
@@ -698,6 +771,19 @@ const invalidCases: InvalidTestCase[] = [
     name: "cannot use external mutable var variables in conditions",
     code: `
       var x = 1;
+      function foo() {
+        if(x) {
+          return 1;
+        }
+      }
+    `,
+    errors: [{ messageId: "cannotUseExternalMutableVariables" }],
+  },
+  {
+    name: "cannot use external var destructured variables in conditions",
+    code: `
+      const y = {x: {}}
+      var {x} = y;
       function foo() {
         if(x) {
           return 1;

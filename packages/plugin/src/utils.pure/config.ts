@@ -63,5 +63,6 @@ export function getPurityRuleConfig(options: Options): RuleConfig {
     allowThrow: customConfig?.allowThrow ?? false,
     allowMutatingReduceAccumulator: customConfig?.allowMutatingReduceAccumulator ?? false,
     allowSetters: customConfig?.allowSetters ?? false,
+    allowClassInstanceThisMutations: customConfig?.allowClassInstanceThisMutations ?? false,
   } satisfies Required<RuleConfig>;
 }

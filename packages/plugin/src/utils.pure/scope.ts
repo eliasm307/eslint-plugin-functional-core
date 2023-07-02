@@ -9,6 +9,7 @@ import type {
   ImportBindingDefinition,
   FunctionScope,
   ClassScope,
+  GlobalScope,
 } from "@typescript-eslint/scope-manager";
 import { DefinitionType, ScopeType } from "@typescript-eslint/scope-manager";
 import type { TSESTree } from "@typescript-eslint/utils";
@@ -164,18 +165,21 @@ export function variableIsReduceAccumulatorParameter(variable: Variable | undefi
   });
 }
 
-export function variableIsDefinedInScope(variable: Variable | undefined, scope: Scope): boolean {
+export function variableIsDefinedInCurrentFunctionScope(
+  variable: Variable | undefined,
+  scope: Scope,
+): boolean {
   const isDefinedInScope = variable?.scope === scope;
   if (isDefinedInScope) {
     return true;
   }
 
-  if (scope.type === ScopeType.function || !scope.upper) {
+  if (isFunctionScope(scope) || !scope.upper) {
     return false; // we are at the top of the local function scope
   }
 
   // this was not the function scope so check the parent scope
-  return variableIsDefinedInScope(variable, scope.upper);
+  return variableIsDefinedInCurrentFunctionScope(variable, scope.upper);
 }
 
 export function getVariableInScope({
@@ -263,12 +267,22 @@ export function isGlobalVariable(variable: Variable | undefined): boolean {
   return !variable || variable.scope.type === ScopeType.global;
 }
 
-function isValidThisScope(scope: Scope): boolean {
-  return scope.type === ScopeType.function && !isArrowFunctionExpressionNode(scope.block);
+function isValidThisScope(scope: Scope): scope is FunctionScope | ClassScope | GlobalScope {
+  if (isClassScope(scope) || isGlobalScope(scope)) {
+    return true;
+  }
+  // todo support scopes from POJOs?
+  return (
+    isFunctionScope(scope) &&
+    // arrow functions use the parent scope
+    !isArrowFunctionExpressionNode(scope.block) &&
+    // its a method so the scope is the class scope
+    !isClassScope(scope.upper)
+  );
 }
 
-function getThisScopeFrom({ fromScope }: { fromScope: Scope }): Scope | null {
-  let scope: Scope | null = fromScope;
+function getThisScopeFrom(initialScope: Scope): FunctionScope | ClassScope | GlobalScope | null {
+  let scope: Scope | null = initialScope;
   while (scope && !isValidThisScope(scope)) {
     scope = scope.upper;
   }
@@ -276,8 +290,12 @@ function getThisScopeFrom({ fromScope }: { fromScope: Scope }): Scope | null {
 }
 
 export function thisExpressionIsGlobalWhenUsedInScope(scope: Scope): boolean {
-  const thisScope = getThisScopeFrom({ fromScope: scope });
-  return !thisScope || thisScope.type === ScopeType.global;
+  const thisScope = getThisScopeFrom(scope);
+  return !thisScope || isGlobalScope(thisScope);
+}
+
+export function thisExpressionIsClassInstanceWhenUsedInScope(scope: Scope) {
+  return isClassScope(getThisScopeFrom(scope));
 }
 
 export function isGlobalScopeUsage({
@@ -302,6 +320,10 @@ function isClassScope(scope: Scope | null): scope is ClassScope {
   return scope?.type === ScopeType.class;
 }
 
+function isGlobalScope(scope: Scope): scope is GlobalScope {
+  return scope.type === ScopeType.global;
+}
+
 function isWithinClassScope(scope: Scope): boolean {
   while (scope) {
     if (isClassScope(scope)) {
@@ -312,7 +334,7 @@ function isWithinClassScope(scope: Scope): boolean {
   return false;
 }
 
-function getImmediateImmediateFunctionScopeWithinClass(scope: Scope): FunctionScope | null {
+function getImmediateFunctionScopeWithinClass(scope: Scope): FunctionScope | null {
   while (scope) {
     if (isFunctionScope(scope)) {
       return scope;
@@ -343,7 +365,7 @@ function getImmediateClassMethodDefinitionNodeFromScope(
     return null;
   }
 
-  const methodFunctionScope = getImmediateImmediateFunctionScopeWithinClass(scope);
+  const methodFunctionScope = getImmediateFunctionScopeWithinClass(scope);
   if (!methodFunctionScope) {
     return null;
   }
