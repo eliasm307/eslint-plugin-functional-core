@@ -1,7 +1,5 @@
 import type { TSESTree } from "@typescript-eslint/utils";
-
 import { AST_NODE_TYPES, ASTUtils } from "@typescript-eslint/utils";
-import { isConditionalExpression } from "typescript";
 
 export const isFunctionNode = ASTUtils.isFunction;
 

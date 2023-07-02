@@ -32,7 +32,7 @@
   ],
   "scripts": {
     "prepare": "npm run build",
-    "lint": "eslint --report-unused-disable-directives --fix --cache .",
+    "lint": "eslint --report-unused-disable-directives --fix --quiet --cache .",
     "update:eslint-docs": "npm run build && eslint-doc-generator",
     "pretest": "npm run typecheck",
     "test": "echo 'Testing...' && jest --coverage",
