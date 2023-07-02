@@ -1,6 +1,9 @@
 import path from "path";
 import rule from "../../../src/rules/purity";
-import { createRuleTester, testCaseInPureFileByDefault } from "../../../src/utils.pure/tests";
+import {
+  createRuleTester,
+  testCaseUniqueAndInPureFileByDefault,
+} from "../../../src/utils.pure/tests";
 import type { InvalidTestCase, ValidTestCase } from "../../../src/utils.pure/tests";
 
 const validCases: ValidTestCase[] = [
@@ -96,6 +99,6 @@ const invalidCases: InvalidTestCase[] = [
 ];
 
 createRuleTester().run(`purity > ${path.basename(__filename, ".test.ts")}`, rule, {
-  valid: validCases.map(testCaseInPureFileByDefault),
-  invalid: invalidCases.map(testCaseInPureFileByDefault),
+  valid: validCases.map(testCaseUniqueAndInPureFileByDefault),
+  invalid: invalidCases.map(testCaseUniqueAndInPureFileByDefault),
 });

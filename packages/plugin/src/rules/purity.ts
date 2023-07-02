@@ -9,10 +9,14 @@ import type { TSESTree } from "@typescript-eslint/utils";
 import type { JSONSchema4 } from "@typescript-eslint/utils/dist/json-schema";
 import { createPurePathPredicate, createRule, globalUsageIsAllowed } from "../utils.pure";
 import {
+  getMainLogicalExpressionNode,
   isAssignmentExpressionNode,
   isCallExpressionNode,
   isIdentifierNode,
+  isLogicalExpressionNode,
   isMemberExpressionNode,
+  isReturnArgumentNode,
+  isTestConditionNodeForAStatement,
   isThisExpressionNode,
 } from "../utils.pure/TSESTree";
 import {
@@ -219,11 +223,11 @@ const rule = createRule<Options, MessageIds>({
         const immediateScope = getImmediateScopeFor(node);
         if (thisExpressionIsGlobalWhenUsedInScope(immediateScope)) {
           const directGlobalUsageAllowed = allowGlobals === true;
-          if (!directGlobalUsageAllowed) {
-            // this likely means using globals which mean the function is not pure
-            reportIssue({ node, messageId: "cannotReferenceGlobalContext" });
+          if (directGlobalUsageAllowed) {
             return;
           }
+          reportIssue({ node, messageId: "cannotReferenceGlobalContext" });
+          return;
         }
 
         if (thisExpressionIsClassInstanceWhenUsedInScope(immediateScope)) {
@@ -345,6 +349,7 @@ const rule = createRule<Options, MessageIds>({
         "LogicalExpression > Identifier.left",
         "LogicalExpression > Identifier.right",
         "Identifier.test", // for if, while, etc statements
+        "SwitchStatement > Identifier.discriminant", // ie the overall switch statement, individual cases are matched via .test
         "CallExpression > Identifier.callee",
         ":not(MemberExpression) > MemberExpression",
       ].join(",")](node: TSESTree.Identifier | TSESTree.MemberExpression) {
@@ -369,23 +374,53 @@ const rule = createRule<Options, MessageIds>({
             node: rootExpressionObject,
             scope: immediateScope,
           });
+
           if (variableIsParameter(variable)) {
             // using any parameter is fine, even from parent functions
             return;
           }
+
           if (variableValueIsImmutable(variable)) {
             // using any immutable value variables is fine
             return;
           }
-          const isDirectFunctionVariableCall = isCallExpression && accessSegmentNodes.length === 1;
-          if (isDirectFunctionVariableCall && variableCannotBeReAssigned(variable)) {
-            // functions can be immutable regarding being called as functions
-            // however they can still be mutated as objects, so the mutability is conditional
-            return;
+
+          const isDirectVariableUsage = accessSegmentNodes.length === 1;
+          if (isDirectVariableUsage && variableCannotBeReAssigned(variable)) {
+            if (isCallExpression) {
+              // functions can be immutable regarding being called as functions
+              // however they can still be mutated as objects, so the mutability is conditional
+              // but if they cant be reassigned then they are immutable and we just assume they are pure
+              return;
+            }
+
+            if (isTestConditionNodeForAStatement(node)) {
+              // if we cant re-assign the variable then the condition result is always the same
+              return;
+            }
+
+            if (isReturnArgumentNode(node)) {
+              // NOTE: this means it returns the same reference but the value could still be mutated,
+              // assuming everything else is pure and nothing mutates it
+              return;
+            }
+
+            if (isLogicalExpressionNode(node.parent)) {
+              const logicalExpressionParent = getMainLogicalExpressionNode(node.parent);
+              if (
+                isTestConditionNodeForAStatement(logicalExpressionParent) ||
+                isReturnArgumentNode(logicalExpressionParent)
+              ) {
+                // if we cant re-assign the variable then the result or return reference is always the same
+                return;
+              }
+            }
           }
+
           if (variableIsDefinedInCurrentFunctionScope(variable, immediateScope)) {
             return; // using any variable from the current scope is fine, including parameters
           }
+
           reportIssue({
             node: rootExpressionObject,
             messageId: "cannotUseExternalMutableVariables",

@@ -1,6 +1,7 @@
 import type { TSESTree } from "@typescript-eslint/utils";
 
 import { AST_NODE_TYPES, ASTUtils } from "@typescript-eslint/utils";
+import { isConditionalExpression } from "typescript";
 
 export const isFunctionNode = ASTUtils.isFunction;
 
@@ -112,3 +113,70 @@ export const isAssignmentExpressionNode = (
 export const isMethodDefinitionNode = (
   node: TSESTree.Node | null | undefined,
 ): node is TSESTree.MethodDefinition => node?.type === AST_NODE_TYPES.MethodDefinition;
+
+export const isLogicalExpressionNode = (
+  node: TSESTree.Node | null | undefined,
+): node is TSESTree.LogicalExpression => node?.type === AST_NODE_TYPES.LogicalExpression;
+
+export const isIfStatementNode = (
+  node: TSESTree.Node | null | undefined,
+): node is TSESTree.IfStatement => node?.type === AST_NODE_TYPES.IfStatement;
+
+export const isWhileStatementNode = (
+  node: TSESTree.Node | null | undefined,
+): node is TSESTree.WhileStatement => node?.type === AST_NODE_TYPES.WhileStatement;
+
+export const isDoWhileStatementNode = (
+  node: TSESTree.Node | null | undefined,
+): node is TSESTree.DoWhileStatement => node?.type === AST_NODE_TYPES.DoWhileStatement;
+
+export const isSwitchStatementNode = (
+  node: TSESTree.Node | null | undefined,
+): node is TSESTree.SwitchStatement => node?.type === AST_NODE_TYPES.SwitchStatement;
+
+/** ie an individual case in a SwitchStatement */
+export const isSwitchCaseNode = (
+  node: TSESTree.Node | null | undefined,
+): node is TSESTree.SwitchCase => node?.type === AST_NODE_TYPES.SwitchCase;
+
+/** ie a ternary condition */
+export const isConditionalExpressionNode = (
+  node: TSESTree.Node | null | undefined,
+): node is TSESTree.ConditionalExpression => node?.type === AST_NODE_TYPES.ConditionalExpression;
+
+/** Gets the top logical expression node */
+export function getMainLogicalExpressionNode(
+  node: TSESTree.LogicalExpression,
+): TSESTree.Node | undefined {
+  let current: TSESTree.Node | undefined = node;
+  while (isLogicalExpressionNode(current?.parent)) {
+    current = current.parent;
+  }
+  return current;
+}
+
+export function isTestConditionNodeForAStatement(node: TSESTree.Node | null | undefined): boolean {
+  if (!node?.parent) {
+    return false;
+  }
+  if (isSwitchStatementNode(node.parent)) {
+    return node.parent.discriminant === node;
+  }
+  if (
+    isIfStatementNode(node.parent) ||
+    isWhileStatementNode(node.parent) ||
+    isDoWhileStatementNode(node.parent) ||
+    isConditionalExpressionNode(node.parent) ||
+    isSwitchCaseNode(node.parent)
+  ) {
+    return node.parent.test === node;
+  }
+  return false;
+}
+
+export function isReturnArgumentNode(node: TSESTree.Node | null | undefined): boolean {
+  if (!node?.parent) {
+    return false;
+  }
+  return isReturnStatementNode(node.parent) && node.parent.argument === node;
+}

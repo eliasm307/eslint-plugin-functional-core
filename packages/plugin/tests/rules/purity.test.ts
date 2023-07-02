@@ -1,7 +1,7 @@
 import rule from "../../src/rules/purity";
 
 import type { InvalidTestCase, ValidTestCase } from "../../src/utils.pure/tests";
-import { createRuleTester, testCaseInPureFileByDefault } from "../../src/utils.pure/tests";
+import { createRuleTester, testCaseUniqueAndInPureFileByDefault } from "../../src/utils.pure/tests";
 
 // todo account for TS types of identifiers
 // todo add option to disallow let and var, everything has to be const
@@ -267,12 +267,80 @@ const validCases: ValidTestCase[] = [
     options: [{ allowIgnoreFunctionCallResult: true }],
   },
   {
-    name: "can use external const variables in conditions",
+    name: "can return const external reference variables",
+    code: `
+      const x = {};
+      function foo() {
+        return x;
+      }
+    `,
+  },
+  {
+    name: "can use external const variables in if conditions",
     code: `
       const x = 1;
       function foo() {
         if(x) {
           return 1;
+        }
+      }
+    `,
+  },
+  {
+    name: "can use external const variables in while conditions",
+    code: `
+      const x = 1;
+      function foo() {
+        while(x) {
+          return 1;
+        }
+      }
+    `,
+  },
+  {
+    name: "can use external const variables in do while conditions",
+    code: `
+      const x = 1;
+      function foo() {
+        do {
+          return 1;
+        } while(x)
+      }
+    `,
+  },
+  {
+    name: "can use external const variables in ternary conditions",
+    code: `
+      const x = 1;
+      function foo() {
+        return x ? 1 : 2;
+      }
+    `,
+  },
+  {
+    name: "can use external const variables in switch statements",
+    code: `
+      const x = 1;
+      function foo() {
+        switch(x) {
+          case 1:
+            return 1;
+          default:
+            return 2;
+        }
+      }
+    `,
+  },
+  {
+    name: "can use external const variables in a switch case",
+    code: `
+      const x = 1;
+      function foo() {
+        switch(1) {
+          case x:
+            return 1;
+          default:
+            return 2;
         }
       }
     `,
@@ -290,7 +358,19 @@ const validCases: ValidTestCase[] = [
     `,
   },
   {
-    name: "can use external immutable reference const variables in chained conditions",
+    name: "can use external const destructured and renamed variables in conditions",
+    code: `
+      const y = {x: {}}
+      const {x: bar} = y;
+      function foo() {
+        if(bar) {
+          return 1;
+        }
+      }
+    `,
+  },
+  {
+    name: "can use external immutable reference const variables in logical expressions",
     code: `
       const x = {};
       const y = {};
@@ -298,6 +378,36 @@ const validCases: ValidTestCase[] = [
         if(x || y) {
           return 1;
         }
+      }
+    `,
+  },
+  {
+    name: "can use external immutable reference const variables in 'and' return conditions",
+    code: `
+      const x = {};
+      const y = {};
+      function foo() {
+        return x && y;
+      }
+    `,
+  },
+  {
+    name: "can use external immutable reference const variables in truthy coalescing conditions",
+    code: `
+      const x = {};
+      const y = {};
+      function foo() {
+        return x || y;
+      }
+    `,
+  },
+  {
+    name: "can use external immutable reference const variables in nullish coalescing conditions",
+    code: `
+      const x = {};
+      const y = {};
+      function foo() {
+        return x ?? y;
       }
     `,
   },
@@ -445,6 +555,14 @@ const validCases: ValidTestCase[] = [
     `,
   },
   {
+    name: "can use destructured and renamed object properties from function parameter",
+    code: `
+      function x({ val: bar }) {
+        return bar;
+      }
+    `,
+  },
+  {
     name: "can use destructured object properties from function parameter in a child function",
     code: `
       function x({ val }) {
@@ -510,7 +628,6 @@ const validCases: ValidTestCase[] = [
 ];
 
 const invalidCases: InvalidTestCase[] = [
-  {},
   {
     name: "cannot mutate properties of this",
     code: `
@@ -518,7 +635,10 @@ const invalidCases: InvalidTestCase[] = [
         this.foo.x = 1;
       }
     `,
-    errors: [{ messageId: "cannotMutateThisContext" }],
+    errors: [
+      { messageId: "cannotMutateThisContext" },
+      { messageId: "cannotUseExternalMutableVariables" },
+    ],
   },
   {
     name: "cannot mutate globalThis",
@@ -659,16 +779,6 @@ const invalidCases: InvalidTestCase[] = [
     ],
   },
   {
-    name: "cannot explicit return external reference variables",
-    code: `
-      const x = {};
-      function foo() {
-        return x;
-      }
-    `,
-    errors: [{ messageId: "cannotUseExternalMutableVariables" }],
-  },
-  {
     name: "cannot implicit return external reference variables",
     code: `
       const x = {};
@@ -717,7 +827,32 @@ const invalidCases: InvalidTestCase[] = [
     errors: [{ messageId: "cannotUseExternalMutableVariables" }],
   },
   {
-    name: "cannot use external mutable let variables in single conditions",
+    name: "cannot use external mutable const variable properties in ternary conditions",
+    code: `
+      const x = {};
+      function foo() {
+        return x.flag ? 1 : 2;
+      }
+    `,
+    errors: [{ messageId: "cannotUseExternalMutableVariables" }],
+  },
+  {
+    name: "cannot use external mutable const variable properties in switch case statements",
+    code: `
+      const x = {};
+      function foo() {
+        switch(x.code) {
+          case 1:
+            return 1;
+          default:
+            return 2;
+        }
+      }
+    `,
+    errors: [{ messageId: "cannotUseExternalMutableVariables" }],
+  },
+  {
+    name: "cannot use external mutable let variables in if conditions",
     code: `
       let x = 1;
       function foo() {
@@ -729,12 +864,89 @@ const invalidCases: InvalidTestCase[] = [
     errors: [{ messageId: "cannotUseExternalMutableVariables" }],
   },
   {
+    name: "cannot use external let variables in ternary conditions",
+    code: `
+      let x = 1;
+      function foo() {
+        return x ? 1 : 2;
+      }
+    `,
+    errors: [{ messageId: "cannotUseExternalMutableVariables" }],
+  },
+  {
+    name: "cannot use external let variables in switch statements",
+    code: `
+      let x = 1;
+      function foo() {
+        switch(x) {
+          case 1:
+            return 1;
+          default:
+            return 2;
+        }
+      }
+    `,
+    errors: [{ messageId: "cannotUseExternalMutableVariables" }],
+  },
+  {
+    name: "cannot use external let variables in switch case statements",
+    code: `
+      let x = 1;
+      function foo() {
+        switch(1) {
+          case x:
+            return 1;
+          default:
+            return 2;
+        }
+      }
+    `,
+    errors: [{ messageId: "cannotUseExternalMutableVariables" }],
+  },
+  {
+    name: "cannot use external mutable let variables in while conditions",
+    code: `
+      let x = 1;
+      function foo() {
+        while(x) {
+          return 1;
+        }
+      }
+    `,
+    errors: [{ messageId: "cannotUseExternalMutableVariables" }],
+  },
+  {
+    name: "cannot use external mutable let variables in do while conditions",
+    code: `
+      let x = 1;
+      function foo() {
+        do {
+          return 1;
+        } while(x)
+      }
+    `,
+    errors: [{ messageId: "cannotUseExternalMutableVariables" }],
+  },
+  {
     name: "cannot use external let destructured variables in conditions",
     code: `
       const y = {x: {}}
       let {x} = y;
       function foo() {
         if(x) {
+          return 1;
+        }
+      }
+    `,
+    errors: [{ messageId: "cannotUseExternalMutableVariables" }],
+  },
+  {
+    name: "cannot use external let destructured and renamed variables in conditions",
+    code: `
+      const y = {x: {}}
+      let {x: bar} = y;
+      function foo() {
+        if(bar) {
           return 1;
         }
       }
@@ -748,19 +960,6 @@ const invalidCases: InvalidTestCase[] = [
       const y = 1;
       function foo() {
         if(x.y || y) {
-          return 1;
-        }
-      }
-    `,
-    errors: [{ messageId: "cannotUseExternalMutableVariables" }],
-  },
-  {
-    name: "cannot use external let destructured variables in conditions",
-    code: `
-      const y = {x: {}}
-      let {x} = y;
-      function foo() {
-        if(x) {
           return 1;
         }
       }
@@ -786,6 +985,19 @@ const invalidCases: InvalidTestCase[] = [
       var {x} = y;
       function foo() {
         if(x) {
+          return 1;
+        }
+      }
+    `,
+    errors: [{ messageId: "cannotUseExternalMutableVariables" }],
+  },
+  {
+    name: "cannot use external var destructured and renamed variables in conditions",
+    code: `
+      const y = {x: {}}
+      var {x: bar} = y;
+      function foo() {
+        if(bar) {
           return 1;
         }
       }
@@ -1122,9 +1334,138 @@ const invalidCases: InvalidTestCase[] = [
     `,
     errors: [{ messageId: "cannotDefineSetters" }],
   },
+  {
+    name: "cannot return external const reference variable properties",
+    code: `
+      var x = {};
+      function foo() {
+        return x.value;
+      }
+    `,
+    errors: [{ messageId: "cannotUseExternalMutableVariables" }],
+  },
+  {
+    name: "cannot return mutable let external reference variables",
+    code: `
+      var x = {};
+      function foo() {
+        return x;
+      }
+    `,
+    errors: [{ messageId: "cannotUseExternalMutableVariables" }],
+  },
+  {
+    name: "cannot return mutable var external reference variables",
+    code: `
+      var x = {};
+      function foo() {
+        return x;
+      }
+    `,
+    errors: [{ messageId: "cannotUseExternalMutableVariables" }],
+  },
+  {
+    name: "cannot use external immutable reference let variables in 'and' return conditions",
+    code: `
+      let x = {};
+      const y = {};
+      function foo() {
+        return x && y;
+      }
+    `,
+    errors: [{ messageId: "cannotUseExternalMutableVariables" }],
+  },
+  {
+    name: "cannot use external immutable reference let variables in truthy coalescing conditions",
+    code: `
+      let x = {};
+      const y = {};
+      function foo() {
+        return x || y;
+      }
+    `,
+    errors: [{ messageId: "cannotUseExternalMutableVariables" }],
+  },
+  {
+    name: "cannot use external immutable reference let variables in nullish coalescing conditions",
+    code: `
+      let x = {};
+      const y = {};
+      function foo() {
+        return x ?? y;
+      }
+    `,
+    errors: [{ messageId: "cannotUseExternalMutableVariables" }],
+  },
+  {
+    name: "cannot use external immutable reference var variables in 'and' return conditions",
+    code: `
+      var x = {};
+      const y = {};
+      function foo() {
+        return x && y;
+      }
+    `,
+    errors: [{ messageId: "cannotUseExternalMutableVariables" }],
+  },
+  {
+    name: "cannot use external immutable reference var variables in truthy coalescing conditions",
+    code: `
+      var x = {};
+      const y = {};
+      function foo() {
+        return x || y;
+      }
+    `,
+    errors: [{ messageId: "cannotUseExternalMutableVariables" }],
+  },
+  {
+    name: "cannot use external immutable reference var variables in nullish coalescing conditions",
+    code: `
+      var x = {};
+      const y = {};
+      function foo() {
+        return x ?? y;
+      }
+    `,
+    errors: [{ messageId: "cannotUseExternalMutableVariables" }],
+  },
+  {
+    name: "cannot use external mutable const variable properties in 'and' return conditions",
+    code: `
+      const x = {};
+      const y = {};
+      function foo() {
+        return x.flag && y;
+      }
+    `,
+    errors: [{ messageId: "cannotUseExternalMutableVariables" }],
+  },
+  {
+    name: "cannot use external mutable const variable properties in truthy coalescing conditions",
+    code: `
+      const x = {};
+      const y = {};
+      function foo() {
+        return x.flag || y;
+      }
+    `,
+    errors: [{ messageId: "cannotUseExternalMutableVariables" }],
+  },
+  {
+    name: "cannot use external mutable const variable properties in nullish coalescing conditions",
+    code: `
+      const x = {};
+      const y = {};
+      function foo() {
+        return x.flag ?? y;
+      }
+    `,
+    errors: [{ messageId: "cannotUseExternalMutableVariables" }],
+  },
 ];
 
 createRuleTester().run("purity", rule, {
-  valid: validCases.map(testCaseInPureFileByDefault),
-  invalid: invalidCases.map(testCaseInPureFileByDefault),
+  valid: validCases.map(testCaseUniqueAndInPureFileByDefault),
+  invalid: invalidCases.map(testCaseUniqueAndInPureFileByDefault),
 });
