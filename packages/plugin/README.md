@@ -58,12 +58,23 @@ Add `functional-core` to the plugins section of your `.eslintrc` configuration f
 }
 ```
 
-Then configure the rules you want to use under the rules section.
+Either add a config to the `extends` section of your `.eslintrc` configuration file, e.g. to add the recommended config do:
+
+```json
+{
+  "extends": ["plugin:functional-core/recommended"]
+}
+```
+
+Or you can manually configure the rules you want to use under the rules section. **NOTE** Rule options are loose/relaxed by default so you need to explicitly change them if you want to be more strict.
+See [Rules](#rules) below for a list of available rules and options.
+
+Example:
 
 ```json
 {
   "rules": {
-    "functional-core/purity": "error"
+    "functional-core/purity": ["error", { "allowThrow": false }]
   }
 }
 ```
