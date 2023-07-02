@@ -217,6 +217,9 @@ const ALLOW_GLOBALS_DEFAULT = {
   } satisfies MemberBooleanMap<typeof JSON>,
 
   Promise: false, // all async code is impure?
+
+  // throwing errors is impure and there is an issue/option for that but they can be returned as values
+  Error: true,
 } satisfies Partial<MemberBooleanMap<typeof globalThis>>;
 
 export default ALLOW_GLOBALS_DEFAULT;
