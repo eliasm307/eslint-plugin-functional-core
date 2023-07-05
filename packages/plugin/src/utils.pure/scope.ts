@@ -10,6 +10,7 @@ import type {
   FunctionScope,
   ClassScope,
   GlobalScope,
+  TSEnumNameDefinition,
 } from "@typescript-eslint/scope-manager";
 import { DefinitionType, ScopeType } from "@typescript-eslint/scope-manager";
 import type { TSESTree } from "@typescript-eslint/utils";
@@ -72,16 +73,20 @@ export function getImmediateScope({
   return scopeManager.globalScope;
 }
 
-function isParameterDefinition(def: Definition): def is ParameterDefinition {
-  return def.type === DefinitionType.Parameter;
+function isParameterDefinition(definition: Definition): definition is ParameterDefinition {
+  return definition.type === DefinitionType.Parameter;
 }
 
-function isVariableDefinition(def: Definition): def is VariableDefinition {
-  return def.type === DefinitionType.Variable;
+function isVariableDefinition(definition: Definition): definition is VariableDefinition {
+  return definition.type === DefinitionType.Variable;
 }
 
-function isImportBindingDefinition(def: Definition): def is ImportBindingDefinition {
-  return def.type === DefinitionType.ImportBinding;
+function isImportBindingDefinition(definition: Definition): definition is ImportBindingDefinition {
+  return definition.type === DefinitionType.ImportBinding;
+}
+
+function isTsEnumNameDefinition(definition: Definition): definition is TSEnumNameDefinition {
+  return definition.type === DefinitionType.TSEnumName;
 }
 
 export function variableIsParameter(variable: Variable | undefined): boolean {
@@ -219,7 +224,7 @@ export function variableValueIsImmutable(variable: Variable | undefined): boolea
     return false; // global variable, assume mutable
   }
 
-  if (isImportBindingDefinition(definition)) {
+  if (isImportBindingDefinition(definition) || isTsEnumNameDefinition(definition)) {
     return true;
   }
 

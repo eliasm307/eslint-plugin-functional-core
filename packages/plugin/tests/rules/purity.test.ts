@@ -626,13 +626,26 @@ const validCases: ValidTestCase[] = [
     options: [{ allowSetters: true }],
   },
   {
-    name: "can have function without return with option",
+    name: "can have function without return (with option)",
     code: `
       function foo() {
         const x = 1;
       }
     `,
     options: [{ allowFunctionWithoutReturn: true }],
+  },
+  {
+    name: "can use enums",
+    code: `
+      enum Foo {
+        A,
+        B,
+      }
+
+      function foo() {
+        return Foo.A;
+      }
+    `,
   },
 ];
 
