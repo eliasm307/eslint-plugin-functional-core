@@ -1214,7 +1214,20 @@ const invalidCases: InvalidTestCase[] = [
     errors: [{ messageId: "cannotMutateFunctionParameters" }],
   },
   {
-    name: "can mutate array variable accumulator in reduce (without option)",
+    name: "cannot mutate array literal value in reduce (with option)",
+    code: `
+      function func() {
+        return [1,2,3].reduce((acc, val) => {
+          val.foo = val;
+          return acc;
+        }, {});
+      }
+    `,
+    options: [{ allowMutatingReduceAccumulator: true }],
+    errors: [{ messageId: "cannotMutateFunctionParameters" }],
+  },
+  {
+    name: "cannot mutate array variable accumulator in reduce (without option)",
     code: `
       function func() {
         const arr = [1,2,3];
@@ -1225,6 +1238,20 @@ const invalidCases: InvalidTestCase[] = [
       }
     `,
     options: [{ allowMutatingReduceAccumulator: false }],
+    errors: [{ messageId: "cannotMutateFunctionParameters" }],
+  },
+  {
+    name: "cannot mutate array variable value in reduce (without option)",
+    code: `
+      function func() {
+        const arr = [1,2,3];
+        return arr.reduce((acc, val) => {
+          val.foo = val;
+          return acc;
+        }, {});
+      }
+    `,
+    options: [{ allowMutatingReduceAccumulator: true }],
     errors: [{ messageId: "cannotMutateFunctionParameters" }],
   },
   // todo support typescript
