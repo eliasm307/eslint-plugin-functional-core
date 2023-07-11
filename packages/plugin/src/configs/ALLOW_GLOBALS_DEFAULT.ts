@@ -17,6 +17,11 @@ const ALLOW_GLOBALS_DEFAULT = {
   undefined: true,
   NaN: true,
   Infinity: true,
+  isNaN: true,
+  isFinite: true,
+  URL: true,
+  URLSearchParams: true,
+  ArrayBuffer: true,
 
   // global testing utils, allowed for testing frameworks
   describe: true,
