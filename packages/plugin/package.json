@@ -50,7 +50,7 @@
     "update-deps": "npm update --save"
   },
   "dependencies": {
-    "@typescript-eslint/utils": "^5.59.9"
+    "@typescript-eslint/utils": "^6.3.0"
   },
   "devDependencies": {
     "@eliasm307/config": "^0.24.0",
