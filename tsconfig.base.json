@@ -11,6 +11,7 @@
     "module": "commonjs",
     "moduleResolution": "node",
     "noImplicitReturns": true,
+    "noImplicitAny": true,
     "pretty": true,
     "skipLibCheck": true,
     "strict": true,

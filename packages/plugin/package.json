@@ -10,7 +10,7 @@
   "publishConfig": {
     "access": "public"
   },
-  "license": "MIT",
+    "license": "MIT",
   "author": "Elias Mangoro",
   "main": "./dist/index.js",
   "exports": "./dist/index.js",
@@ -60,6 +60,7 @@
     "@types/jest": "^29.5.3",
     "@typescript-eslint/eslint-plugin": "^6.4.0",
     "@typescript-eslint/parser": "^6.4.0",
+    "@typescript-eslint/rule-tester": "^6.4.0",
     "cross-env": "^7.0.3",
     "eslint": ">=8",
     "eslint-doc-generator": "^1.4.3",
