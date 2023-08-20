@@ -1,4 +1,5 @@
-import { ESLintUtils } from "@typescript-eslint/utils";
+import type { ESLintUtils } from "@typescript-eslint/utils";
+import { RuleTester } from "eslint";
 import type { MessageIds, Options } from "../rules/purity";
 
 export type ValidTestCase = ESLintUtils.ValidTestCase<Options>;
@@ -20,5 +21,7 @@ export function testCaseUniqueAndInPureFileByDefault<Case extends ValidTestCase 
 }
 
 export function createRuleTester() {
-  return new ESLintUtils.RuleTester({ parser: "@typescript-eslint/parser" });
+  return new RuleTester({
+    parser: require.resolve("@typescript-eslint/parser"),
+  });
 }
