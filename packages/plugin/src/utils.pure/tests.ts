@@ -1,5 +1,4 @@
 import type { ESLintUtils } from "@typescript-eslint/utils";
-// eslint-disable-next-line import/no-unresolved
 // @ts-expect-error [not sure why ts cant resolve this but it does exist]
 import { RuleTester } from "@typescript-eslint/rule-tester";
 import type { MessageIds, Options } from "../rules/purity";
