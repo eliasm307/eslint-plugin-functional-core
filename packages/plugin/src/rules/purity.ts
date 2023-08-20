@@ -32,7 +32,11 @@ import {
   isClassSetterScope,
   thisExpressionIsClassInstanceWhenUsedInScope,
 } from "../utils.pure/scope";
-import type { AllowGlobalsValue, PurityRuleContext } from "../utils.pure/types";
+import type {
+  AllowGlobalsValue,
+  PurityRuleContext,
+  SharedConfigurationSettings,
+} from "../utils.pure/types";
 import { getPurityRuleConfig } from "../utils.pure/config";
 import getUsageData from "../utils.pure/getUsageData";
 
@@ -137,7 +141,7 @@ const rule = createRule<Options, MessageIds>({
   defaultOptions: [{}],
   create(ruleContext) {
     const filename = ruleContext.getFilename();
-    const globalSettings = ruleContext.settings["functional-core"];
+    const globalSettings = (ruleContext.settings as SharedConfigurationSettings)["functional-core"];
     const isPurePath = createPurePathPredicate({
       filename,
       customPureModulePatterns: globalSettings?.purePaths,

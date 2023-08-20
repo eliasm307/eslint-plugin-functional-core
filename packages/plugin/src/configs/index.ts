@@ -12,7 +12,7 @@ export default {
           allowIgnoreFunctionCallResult: false,
           // can be good for performance so allowed
           allowMutatingReduceAccumulator: true,
-          allowGlobals: {}, // dont modify default
+          allowGlobals: {}, // don't modify default
           allowSetters: false,
           allowClassInstanceThisMutations: true,
           allowFunctionWithoutReturn: true,
@@ -23,7 +23,9 @@ export default {
 
   strict: {
     settings: {
-      purePaths: [".*"], // all files are pure by default
+      "functional-core": {
+        purePaths: [".*"], // all files are pure by default
+      },
     } satisfies SharedConfigurationSettings,
     rules: {
       "functional-core/purity": [
