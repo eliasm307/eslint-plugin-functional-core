@@ -41,6 +41,23 @@ const ALLOW_GLOBALS_DEFAULT = {
   // false by default but can be overridden
   process: false,
 
+  document: {
+    // pure
+    createElement: true,
+    createTextNode: true,
+    createComment: true,
+    createDocumentFragment: true,
+    createEvent: true,
+    createRange: true,
+    createTreeWalker: true,
+    createNodeIterator: true,
+    createCDATASection: true,
+    createAttributeNS: true,
+    createExpression: true,
+    createNSResolver: true,
+    createProcessingInstruction: true,
+  } satisfies Partial<MemberBooleanMap<Document>>,
+
   // namespaces
   Boolean: true,
 
