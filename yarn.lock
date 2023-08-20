@@ -435,9 +435,9 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@eliasm307/config@npm:^0.31.0":
-  version: 0.31.0
-  resolution: "@eliasm307/config@npm:0.31.0"
+"@eliasm307/config@npm:^0.32.0":
+  version: 0.32.0
+  resolution: "@eliasm307/config@npm:0.32.0"
   dependencies:
     eslint-config-airbnb: ^19.0.4
     eslint-config-airbnb-base: ^15.0.0
@@ -445,8 +445,8 @@ __metadata:
     eslint-config-react: ^1.1.7
     eslint-import-resolver-babel-module: ^5.3.2
     eslint-import-resolver-typescript: ^3.6.0
-    eslint-plugin-functional-core: ^1.3.0
-    eslint-plugin-import: ^2.28.0
+    eslint-plugin-functional-core: ^1.4.0
+    eslint-plugin-import: ^2.28.1
     eslint-plugin-jsx-a11y: ^6.7.1
     eslint-plugin-prettier: ^5.0.0
     eslint-plugin-promise: ^6.1.1
@@ -454,11 +454,11 @@ __metadata:
     eslint-plugin-react-hooks: ^4.6.0
     prettier: ^3.0.2
   peerDependencies:
-    "@typescript-eslint/eslint-plugin": ">=5"
-    "@typescript-eslint/parser": ">=5"
-    eslint: ">=8"
-    typescript: ">=5"
-  checksum: feee98ae3523c1994ce93c45d457de891f3fc5a2459501ce8370af458d6834b90d305d4f0b5003cc780fee83dd69e0ae63c7bd54e8ea668ff9c1f87512a88a41
+    "@typescript-eslint/eslint-plugin": ^6
+    "@typescript-eslint/parser": ^6
+    eslint: ^8
+    typescript: ^5
+  checksum: e05e896b9c80bb95fb04b44c77a9a3aece9c1bc383b223e1dbadacc41c96362ebab8cf245488535f35b6f79e1645d0471af62e430cc56bab26b9dd0ccab571a3
   languageName: node
   linkType: hard
 
@@ -1396,22 +1396,6 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@typescript-eslint/rule-tester@npm:^6.4.0":
-  version: 6.4.0
-  resolution: "@typescript-eslint/rule-tester@npm:6.4.0"
-  dependencies:
-    "@typescript-eslint/typescript-estree": 6.4.0
-    "@typescript-eslint/utils": 6.4.0
-    ajv: ^6.10.0
-    lodash.merge: 4.6.2
-    semver: ^7.5.4
-  peerDependencies:
-    "@eslint/eslintrc": ">=2"
-    eslint: ">=8"
-  checksum: bc903eb358bd318d2f34eacfbec82fee5c2b8df450734e96d124007c33f7cd49808d84283972d246de9174b72c41ab0f58eca96cdbf745b9204b64b33438fd6a
-  languageName: node
-  linkType: hard
-
 "@typescript-eslint/scope-manager@npm:5.59.9":
   version: 5.59.9
   resolution: "@typescript-eslint/scope-manager@npm:5.59.9"
@@ -1625,7 +1609,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"ajv@npm:^6.10.0, ajv@npm:^6.12.4":
+"ajv@npm:^6.12.4":
   version: 6.12.6
   resolution: "ajv@npm:6.12.6"
   dependencies:
@@ -2977,18 +2961,17 @@ __metadata:
   languageName: node
   linkType: hard
 
-"eslint-plugin-functional-core@^1.3.0, eslint-plugin-functional-core@workspace:^, eslint-plugin-functional-core@workspace:packages/plugin":
+"eslint-plugin-functional-core@^1.4.0, eslint-plugin-functional-core@workspace:^, eslint-plugin-functional-core@workspace:packages/plugin":
   version: 0.0.0-use.local
   resolution: "eslint-plugin-functional-core@workspace:packages/plugin"
   dependencies:
-    "@eliasm307/config": ^0.31.0
+    "@eliasm307/config": ^0.32.0
     "@swc/core": ^1.3.78
     "@swc/jest": ^0.2.29
     "@types/eslint": ^8.44.2
     "@types/jest": ^29.5.3
     "@typescript-eslint/eslint-plugin": ^6.4.0
     "@typescript-eslint/parser": ^6.4.0
-    "@typescript-eslint/rule-tester": ^6.4.0
     "@typescript-eslint/utils": ^6.4.0
     cross-env: ^7.0.3
     eslint: ">=8"
@@ -3010,7 +2993,7 @@ __metadata:
   languageName: unknown
   linkType: soft
 
-"eslint-plugin-import@npm:^2.28.0":
+"eslint-plugin-import@npm:^2.28.1":
   version: 2.28.1
   resolution: "eslint-plugin-import@npm:2.28.1"
   dependencies:
@@ -5154,7 +5137,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"lodash.merge@npm:4.6.2, lodash.merge@npm:^4.6.2":
+"lodash.merge@npm:^4.6.2":
   version: 4.6.2
   resolution: "lodash.merge@npm:4.6.2"
   checksum: ad580b4bdbb7ca1f7abf7e1bce63a9a0b98e370cf40194b03380a46b4ed799c9573029599caebc1b14e3f24b111aef72b96674a56cfa105e0f5ac70546cdc005
