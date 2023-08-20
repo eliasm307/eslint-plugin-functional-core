@@ -75,7 +75,7 @@
     "node": "^14.17.0 || ^16.0.0 || >= 18.0.0"
   },
   "peerDependencies": {
-    "@typescript-eslint/parser": "^5.0.0",
+    "@typescript-eslint/parser": ">=5.0.0",
     "eslint": ">=7"
   },
   "peerDependenciesMeta": {
