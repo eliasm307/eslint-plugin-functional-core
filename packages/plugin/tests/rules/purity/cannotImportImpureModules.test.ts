@@ -74,7 +74,7 @@ const invalidCases: InvalidTestCase[] = [
     code: `import foo from "./tests/foo";`,
     settings: {
       "functional-core": {
-        purePaths: ["\\/test\\/"],
+        purePaths: "\\/test\\/", // also tests it accepts strings
       },
     },
     errors: [{ messageId: "cannotImportImpureModules" }],

@@ -1,8 +1,8 @@
-"use strict";
+ 
+var ecmConfig = require("@eliasm307/config/eslint")({ withPrettier: true, withReact: false });
 
 module.exports = {
   root: true,
-  parser: "@typescript-eslint/parser",
   plugins: ["@typescript-eslint", "functional-core"],
   env: {
     node: true,
@@ -11,4 +11,5 @@ module.exports = {
   rules: {
     "functional-core/purity": "warn", // so it doesn't cause failures
   },
+  settings: ecmConfig.settings,
 };

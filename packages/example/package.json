@@ -5,7 +5,11 @@
   "installConfig": {
     "hoistingLimits": "workspaces"
   },
+  "scripts": {
+    "lint": "eslint --report-unused-disable-directives --fix --quiet --cache ."
+  },
   "dependencies": {
+    "eslint": "^8.48.0",
     "eslint-plugin-functional-core": "workspace:^"
   }
 }

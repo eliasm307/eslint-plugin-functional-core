@@ -142,10 +142,12 @@ const rule = createRule<Options, MessageIds>({
   create(ruleContext) {
     const filename = ruleContext.getFilename();
     const globalSettings = (ruleContext.settings as SharedConfigurationSettings)["functional-core"];
-    const isPurePath = createPurePathPredicate({
-      filename,
-      customPureModulePatterns: globalSettings?.purePaths,
-    });
+    let customPureModulePatterns = globalSettings?.purePaths;
+    if (typeof customPureModulePatterns === "string") {
+      customPureModulePatterns = [customPureModulePatterns];
+    }
+
+    const isPurePath = createPurePathPredicate({ filename, customPureModulePatterns });
 
     // todo allow items in impure modules to be marked as pure
     if (!isPurePath(filename)) {
