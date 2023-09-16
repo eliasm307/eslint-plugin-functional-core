@@ -15,3 +15,4 @@ Options are loose by default to allow for gradual adoption, but can be made stri
 - `allowSetters` - _boolean_ (default: `true`) - Allow defining setters in objects and classes, these normally result in implicit side effects.
 - `allowClassInstanceThisMutations` - _boolean_ (default: `true`) - Allow mutating class instances internally via `this` (e.g. `this.foo = 1`).
 - `allowFunctionWithoutReturn` - _boolean_ (default: `true`) - Allow functions without a `return` statement, not having a return likely means the function is creating side effects.
+- `considerFunctionValuesImmutable` - _boolean_ (default: `true`) - Consider values which are functions to be immutable. Although what a function does when it is called is immutable, the function itself can be mutated as an object (e.g. `myFunction.foo = 1`), setting this to `false` will warn about this. **NOTE** This also considers classes as functions.
