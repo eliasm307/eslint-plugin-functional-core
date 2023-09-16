@@ -131,12 +131,12 @@ const ALLOW_GLOBALS_DEFAULT = {
     preventExtensions: true,
 
     // impure
-    assign: false,
-    defineProperties: false,
-    defineProperty: false,
-    setPrototypeOf: false,
-    freeze: false, // ?
-    seal: false, // ?
+    assign: false, // mutates target object argument
+    defineProperties: false, // mutates target object argument
+    defineProperty: false, // mutates target object argument
+    setPrototypeOf: false, // mutates target object argument
+    freeze: false, // mutates target object argument
+    seal: false, // mutates target object argument
     prototype: false, // todo define whats allowed from instances
   } satisfies MemberBooleanMap<typeof Object>,
 
