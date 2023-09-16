@@ -137,6 +137,16 @@ const validCases: ValidTestCase[] = [
     `,
     options: [{ allowClassInstanceThisMutations: true }],
   },
+  {
+    name: "class references are considered immutable",
+    code: `
+      class Foo {}
+
+      function bar() {
+        return Foo;
+      }
+    `,
+  },
 ];
 
 const invalidCases: InvalidTestCase[] = [

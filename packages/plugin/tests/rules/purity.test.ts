@@ -1523,6 +1523,29 @@ const invalidCases: InvalidTestCase[] = [
     options: [{ allowFunctionWithoutReturn: false }],
     errors: [{ messageId: "functionsMustExplicitlyReturnAValue" }],
   },
+  {
+    name: "cannot return mutable reference variables as object properties using short hand",
+    code: `
+      let x = () => null;
+
+      function foo() {
+        return { x };
+      }
+    `,
+    errors: [{ messageId: "cannotUseExternalMutableVariables" }],
+  },
+  {
+    // todo add option to consider functions as immutable even if their object properties can be changed
+    name: "cannot return un-reassignable reference variables as object properties using short hand",
+    code: `
+      const x = () => null; // this cannot be reassigned but it is still mutable as an object
+
+      function foo() {
+        return { x };
+      }
+    `,
+    errors: [{ messageId: "cannotUseExternalMutableVariables" }],
+  },
 ];
 
 createRuleTester().run("purity", rule, {
