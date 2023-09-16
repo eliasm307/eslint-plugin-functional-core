@@ -48,6 +48,7 @@ export type RuleConfig = {
   allowSetters?: boolean;
   allowClassInstanceThisMutations?: boolean;
   allowFunctionWithoutReturn?: boolean;
+  considerFunctionValuesImmutable?: boolean;
 };
 
 export type Options = [RuleConfig | undefined];
@@ -134,6 +135,11 @@ const rule = createRule<Options, MessageIds>({
             type: "boolean",
             description: "Whether to allow functions without a return statement",
           },
+          considerFunctionValuesImmutable: {
+            type: "boolean",
+            description:
+              "Whether to consider functions as immutable values. Although the function call functionality cant be mutated, properties of the function can be mutated as it is an object",
+          },
         } satisfies Record<keyof RuleConfig, JSONSchema4>,
       },
     ],
@@ -162,6 +168,7 @@ const rule = createRule<Options, MessageIds>({
       allowSetters,
       allowClassInstanceThisMutations,
       allowFunctionWithoutReturn,
+      considerFunctionValuesImmutable,
     } = getPurityRuleConfig(ruleContext.options);
 
     const context = {
@@ -394,7 +401,12 @@ const rule = createRule<Options, MessageIds>({
             return;
           }
 
-          if (variableValueIsImmutable(variable)) {
+          if (
+            variableValueIsImmutable(variable, {
+              // todo this shouldnt be an issue as the type is primitive
+              functionsAreImmutable: considerFunctionValuesImmutable,
+            })
+          ) {
             // using any immutable value variables is fine
             return;
           }

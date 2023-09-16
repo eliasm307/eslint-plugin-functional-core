@@ -132,6 +132,14 @@ export const isSwitchStatementNode = (
   node: TSESTree.Node | null | undefined,
 ): node is TSESTree.SwitchStatement => node?.type === AST_NODE_TYPES.SwitchStatement;
 
+export const isClassDeclarationNode = (
+  node: TSESTree.Node | null | undefined,
+): node is TSESTree.ClassDeclaration => node?.type === AST_NODE_TYPES.ClassDeclaration;
+
+export const isClassExpressionNode = (
+  node: TSESTree.Node | null | undefined,
+): node is TSESTree.ClassExpression => node?.type === AST_NODE_TYPES.ClassExpression;
+
 /** ie an individual case in a SwitchStatement */
 export const isSwitchCaseNode = (
   node: TSESTree.Node | null | undefined,

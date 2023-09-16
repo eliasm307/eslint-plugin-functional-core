@@ -66,5 +66,6 @@ export function getPurityRuleConfig(options: Options): RuleConfig {
     allowSetters: customConfig?.allowSetters ?? true,
     allowClassInstanceThisMutations: customConfig?.allowClassInstanceThisMutations ?? true,
     allowFunctionWithoutReturn: customConfig?.allowFunctionWithoutReturn ?? true,
+    considerFunctionValuesImmutable: customConfig?.considerFunctionValuesImmutable ?? true,
   } satisfies Required<RuleConfig>;
 }

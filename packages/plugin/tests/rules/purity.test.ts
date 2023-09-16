@@ -647,6 +647,46 @@ const validCases: ValidTestCase[] = [
       }
     `,
   },
+  {
+    name: "can return const arrow function reference as object properties using short hand",
+    code: `
+      const x = () => null; // this cannot be reassigned but it is still mutable as an object
+
+      function foo() {
+        return { x };
+      }
+    `,
+  },
+  {
+    name: "can return const function reference as object properties using short hand",
+    code: `
+      const x = function() {}; // this cannot be reassigned but it is still mutable as an object
+
+      function foo() {
+        return { x };
+      }
+    `,
+  },
+  {
+    name: "can return class function reference as object properties using short hand",
+    code: `
+      class Bar {}
+
+      function foo() {
+        return { Bar };
+      }
+    `,
+  },
+  {
+    name: "can return class function reference in a variable as object properties using short hand",
+    code: `
+      const Bar = class {}
+
+      function foo() {
+        return { Bar };
+      }
+    `,
+  },
 ];
 
 const invalidCases: InvalidTestCase[] = [
@@ -1192,6 +1232,7 @@ const invalidCases: InvalidTestCase[] = [
         externalFunc.assign = 1;
       }
     `,
+    options: [{ considerFunctionValuesImmutable: false }],
     errors: [
       { messageId: "cannotMutateExternalVariables" },
       { messageId: "cannotUseExternalMutableVariables" },
@@ -1208,10 +1249,7 @@ const invalidCases: InvalidTestCase[] = [
         externalFunc.assign = 1;
       }
     `,
-    errors: [
-      { messageId: "cannotMutateExternalVariables" },
-      { messageId: "cannotUseExternalMutableVariables" },
-    ],
+    errors: [{ messageId: "cannotMutateExternalVariables" }],
   },
   {
     name: "cannot mutate array literal accumulator in reduce (without option)",
@@ -1544,6 +1582,7 @@ const invalidCases: InvalidTestCase[] = [
         return { x };
       }
     `,
+    options: [{ considerFunctionValuesImmutable: false }],
     errors: [{ messageId: "cannotUseExternalMutableVariables" }],
   },
 ];

@@ -11,6 +11,7 @@ import type {
   ClassScope,
   GlobalScope,
   TSEnumNameDefinition,
+  ClassNameDefinition,
 } from "@typescript-eslint/scope-manager";
 import { DefinitionType, ScopeType } from "@typescript-eslint/scope-manager";
 import type { TSESTree } from "@typescript-eslint/utils";
@@ -18,6 +19,7 @@ import {
   isArrayExpressionNode,
   isArrowFunctionExpressionNode,
   isCallExpressionNode,
+  isClassExpressionNode,
   isFunctionExpressionNode,
   isIdentifierNode,
   isLiteralNode,
@@ -83,6 +85,10 @@ function isVariableDefinition(definition: Definition): definition is VariableDef
 
 function isImportBindingDefinition(definition: Definition): definition is ImportBindingDefinition {
   return definition.type === DefinitionType.ImportBinding;
+}
+
+function isClassDefinition(definition: Definition): definition is ClassNameDefinition {
+  return definition.type === DefinitionType.ClassName;
 }
 
 function isTsEnumNameDefinition(definition: Definition): definition is TSEnumNameDefinition {
@@ -218,7 +224,12 @@ export function getVariableInScope({
 }
 
 /** `true` if the variable value cannot be re-assigned or mutated */
-export function variableValueIsImmutable(variable: Variable | undefined): boolean {
+export function variableValueIsImmutable(
+  variable: Variable | undefined,
+  options?: {
+    functionsAreImmutable?: boolean;
+  },
+): boolean {
   const definition = variable?.defs[0];
   if (!definition) {
     return false; // global variable, assume mutable
@@ -228,11 +239,30 @@ export function variableValueIsImmutable(variable: Variable | undefined): boolea
     return true;
   }
 
+  if (isClassDefinition(definition) && options?.functionsAreImmutable) {
+    return true;
+  }
+
   if (isVariableDefinition(definition)) {
+    const isConst = definition.parent?.kind === "const";
+    if (!isConst) {
+      return false; // variable is mutable ie re-assigning can change the variable value
+    }
+
+    const valueNode = definition.node?.init;
+    if (options?.functionsAreImmutable) {
+      const isFunctionValue =
+        isFunctionExpressionNode(valueNode) ||
+        isArrowFunctionExpressionNode(valueNode) ||
+        isClassExpressionNode(valueNode);
+      if (isFunctionValue) {
+        return true;
+      }
+    }
+
     // todo also use the type checker to determine if the variable is mutable
-    const isPrimitiveValue =
-      isLiteralNode(definition.node?.init) || isTemplateLiteralNode(definition.node?.init);
-    return isPrimitiveValue && definition.parent?.kind === "const";
+    const isPrimitiveValue = isLiteralNode(valueNode) || isTemplateLiteralNode(valueNode);
+    return isPrimitiveValue;
   }
 
   return false;
