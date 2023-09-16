@@ -5,7 +5,7 @@ module.exports = {
   cache: true,
   verbose: true,
   collectCoverageFrom: ["./src/**/*.{js,jsx,ts,tsx}"],
-  coverageReporters: ["lcov"],
+  // coverageReporters: ["lcov"],
   moduleFileExtensions: ["ts", "tsx", "mts", "mtsx", "js", "jsx", "mjs", "mjsx", "json", "node"],
   testRegex: ["./tests/.+\\.test\\.ts$", "./tests/.+\\.spec\\.ts$"],
   transform: {
