@@ -129,6 +129,7 @@ const ALLOW_GLOBALS_DEFAULT = {
     isFrozen: true,
     isSealed: true,
     preventExtensions: true,
+    hasOwn: true,
 
     // impure
     assign: false, // mutates target object argument
