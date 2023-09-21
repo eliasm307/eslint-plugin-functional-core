@@ -6,6 +6,6 @@ export const rules: (typeof rulesImport)["default"];
 
 export const configs: (typeof configsImport)["default"];
 
-export type RuleOptions = {
+export interface RuleOptions {
   purity?: PurityRuleConfig;
-};
+}

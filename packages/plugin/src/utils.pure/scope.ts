@@ -49,6 +49,7 @@ export function getImmediateScope({
     // eslint-disable-next-line functional-core/purity -- side effect of caching
     visitedNodes.add(node);
     scopeManager.getDeclaredVariables(node);
+    // eslint-disable-next-line
     const scope = nodeToImmediateScopeMap.get(node) || scopeManager.acquire(node);
     if (scope) {
       // eslint-disable-next-line functional-core/purity -- side effect of caching
