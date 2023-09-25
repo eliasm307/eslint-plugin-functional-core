@@ -276,6 +276,26 @@ const validCases: ValidTestCase[] = [
     `,
   },
   {
+    name: "can use const variables that cant be mutated",
+    code: `
+      const regex = RegExp("foo");
+      const number = Number("foo");
+      const string = String("foo");
+      const boolean = Boolean("foo");
+      const bigint = BigInt("foo");
+      const symbol = Symbol("foo");
+
+      function foo() {
+        return regex.test("foo")
+          && number
+          && string
+          && boolean
+          && bigint
+          && symbol;
+      }
+    `,
+  },
+  {
     name: "can use external const variables in if conditions",
     code: `
       const x = 1;
