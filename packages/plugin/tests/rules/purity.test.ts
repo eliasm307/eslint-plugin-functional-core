@@ -707,6 +707,15 @@ const validCases: ValidTestCase[] = [
       }
     `,
   },
+  {
+    name: "considers regex to be immutable",
+    code: `
+      const x = /foo/;
+      function foo() {
+        const y = x;
+      }
+    `,
+  },
 ];
 
 const invalidCases: InvalidTestCase[] = [
