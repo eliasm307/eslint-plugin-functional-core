@@ -279,6 +279,7 @@ const validCases: ValidTestCase[] = [
     name: "can use const variables that cant be mutated",
     code: `
       const regex = RegExp("foo");
+      const regex2 = /foo/;
       const number = Number("foo");
       const string = String("foo");
       const boolean = Boolean("foo");
@@ -287,6 +288,7 @@ const validCases: ValidTestCase[] = [
 
       function foo() {
         return regex.test("foo")
+          && regex2.test("foo")
           && number
           && string
           && boolean
@@ -432,7 +434,7 @@ const validCases: ValidTestCase[] = [
     `,
   },
   {
-    name: "can call imported functions",
+    name: "can call imported functions from pure module",
     code: `
       import externalFunc from "./mod.pure";
 
@@ -440,6 +442,27 @@ const validCases: ValidTestCase[] = [
         return externalFunc();
       }
     `,
+  },
+  {
+    name: "can call required functions from pure module",
+    code: `
+      const externalFunc = require("./mod.pure");
+
+      function func() {
+        return externalFunc();
+      }
+    `,
+  },
+  {
+    name: "can call required functions from pure module (from js file)",
+    code: `
+      const externalFunc = require("./mod.pure");
+
+      function func() {
+        return externalFunc();
+      }
+    `,
+    filename: "file.js",
   },
   {
     name: "can call constant arrow function references",

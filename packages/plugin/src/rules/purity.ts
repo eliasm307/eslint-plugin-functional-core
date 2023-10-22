@@ -226,7 +226,14 @@ const rule = createRule<Options, MessageIds>({
 
     return {
       Program(node) {
-        context.scopeManager = analyzeScope(node, { sourceType: "module" });
+        try {
+          // I think this is a bug in the scope manager or maybe misconfiguration but this sometimes throws an error
+          // todo investigate this, might be do to with using require?
+          context.scopeManager = analyzeScope(node, { sourceType: "module" });
+        } catch (error) {
+          console.error("Failed to analyse scope", error);
+          throw error;
+        }
       },
       ImportDeclaration(node) {
         if (node.importKind === "type") {
