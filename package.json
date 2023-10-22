@@ -6,6 +6,8 @@
     "packages/*"
   ],
   "scripts": {
-    "test": "yarn --cwd packages/plugin test"
+    "test": "yarn --cwd packages/plugin test",
+    "upgrade": "yarn upgrade-interactive",
+    "upgrade-latest": "yarn upgrade-interactive --latest"
   }
 }
