@@ -2,8 +2,8 @@ import type { SourceCode } from "@typescript-eslint/utils/dist/ts-eslint";
 import type { ScopeManager } from "@typescript-eslint/scope-manager";
 
 declare module "@typescript-eslint/utils/dist/ts-eslint" {
+  // @ts-expect-error
   // eslint-disable-next-line
-  // @ts-ignore
   interface SharedConfigurationSettings {
     "functional-core"?: FunctionalCoreGlobalSettings;
   }

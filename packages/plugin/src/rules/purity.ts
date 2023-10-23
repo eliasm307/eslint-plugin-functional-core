@@ -40,7 +40,7 @@ import type {
 import { getPurityRuleConfig } from "../utils.pure/config";
 import getUsageData from "../utils.pure/getUsageData";
 
-export interface RuleConfig {
+export type RuleConfig = {
   allowThrow?: boolean;
   allowIgnoreFunctionCallResult?: boolean;
   allowGlobals?: AllowGlobalsValue;
@@ -49,7 +49,7 @@ export interface RuleConfig {
   allowClassInstanceThisMutations?: boolean;
   allowFunctionWithoutReturn?: boolean;
   considerFunctionValuesImmutable?: boolean;
-}
+};
 
 export type Options = [RuleConfig | undefined];
 
